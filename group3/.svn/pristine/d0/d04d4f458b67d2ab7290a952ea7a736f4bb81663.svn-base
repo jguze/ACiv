@@ -1,0 +1,26 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package civ.navigation;
+
+import civ.Map;
+
+
+public class ManhattanHeuristic implements AStarHeuristic {
+
+    /**
+     * Gets cost of moving from one tile to another based on the Manhattan distance equation.
+     * @param x current x location
+     * @param y current y location
+     * @param moveToX destination x location
+     * @param moveToY destination y location
+     * @return the movement cost associated with moving to the destination tile
+     */
+    @Override
+    public float getCost(int x, int y, int moveToX, int moveToY) {
+	return 3 * Math.max(Math.abs(x - moveToX), Math.abs(y - moveToY));
+    }
+    
+    
+}

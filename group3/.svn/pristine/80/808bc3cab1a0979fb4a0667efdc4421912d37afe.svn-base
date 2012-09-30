@@ -1,0 +1,116 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.UI;
+
+import javax.swing.*;
+import java.awt.*;
+import civ.engine.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
+/**
+ *
+ * @author paulhunter
+ */
+public class CivFrame extends JFrame implements ActionListener
+{
+    private MapView mapView;
+    private MiniMapView miniMapView;
+    private GameEngine civEngine;
+    
+    JButton turnDone;
+    JTextField output;
+    JPanel turnActions;
+    
+    Container CP = this.getContentPane();
+
+    public CivFrame(GameEngine engine)
+    {
+        super("MainCivFrame");
+
+        CP.setLayout(this.createLayout());
+        CP.setPreferredSize(new Dimension(800, 600));
+
+        CP.setBackground(new Color(255,0,255));
+        Insets buttonMargin = new Insets(5, 1, 5, 1);
+        
+        civEngine = engine;
+        
+        mapView = new MapView(civEngine, 632, 592);
+        //Use this line to have a 10x10 tile map.
+        //mapView = new MapView(civEngine, 302, 302);
+        miniMapView = new MiniMapView(150,90);
+        
+        turnDone = new JButton("Turn Done");
+        turnDone.setBackground(Color.LIGHT_GRAY);
+        turnDone.setForeground(Color.BLACK);
+        turnDone.setMargin(buttonMargin);
+        turnDone.addActionListener(this);
+        
+        output = new JTextField("0", 5);
+        output.setFont(new Font("Courier", Font.PLAIN, 16));
+        output.setHorizontalAlignment(4);
+        
+        turnActions = new JPanel();
+        turnActions.add(output);
+        turnActions.add(turnDone);
+        turnActions.setBackground(Color.PINK);
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(5,5,5,5);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(miniMapView, c);
+
+        //Add the main map view to the frame.
+        c.insets = new Insets(3,3,3,3);
+        c.gridx = 1;
+        c.gridy = 0;
+        c.gridheight = 2;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(mapView, c);
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(turnActions, c);
+
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setResizable(false);
+        this.setSize(800, 600);
+        this.pack(); //DO NOT REMOVE, YOU WILL BREAK THINGS YOU DONT EVEN UNDERSTAND!
+        mapView.paintMap();
+        this.setVisible(true);
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == turnDone) {
+            civEngine.changePlayer();
+            int turns = civEngine.getTurnCount();
+            output.setText(Integer.toString(turns));
+            mapView.requestFocusInWindow();
+        }
+    }
+
+    private GridBagLayout createLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {160,640};
+        GBL.rowHeights = new int[] {100, 500};
+        return GBL;
+    }
+}

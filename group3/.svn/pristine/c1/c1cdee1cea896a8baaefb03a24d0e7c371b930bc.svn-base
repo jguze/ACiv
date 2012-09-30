@@ -1,0 +1,90 @@
+package civ.UI;
+
+
+import civ.Unit;
+import civ.engine.GameEngine;
+import civ.engine.WindowHandler;
+import java.awt.*;
+import java.awt.event.WindowEvent;
+import javax.swing.*;
+import java.util.ArrayList;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+
+/**
+ *
+ * @author Mikko Sanchez =D
+ */
+public class UnitSelectViewTransport extends JFrame implements ListSelectionListener
+{
+
+
+    private Container cp;
+    private JList list;
+    private Unit transporter;
+
+    private int IndexOfSelectedUnit;
+
+    GameEngine game;
+    ArrayList<Unit> unit;
+
+    public UnitSelectViewTransport(Unit transport, GameEngine gameEngine, boolean isTransport){
+        super("Contained Units");
+        game = gameEngine;
+        unit = transport.getList();
+        transporter = transport;
+        int i;
+
+        game.setCurrentlySelectedUnit(transporter);
+
+        String UnitList[] = new String[transport.getNumUnits()];
+
+        for(i = 0; i < transport.getNumUnits(); i++){
+            UnitList[i] = unit.get(i).getUnitType().toString();
+        }
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        cp = getContentPane();
+        cp.setLayout(new GridBagLayout());
+        cp.setBackground(Color.BLUE);
+        cp.setPreferredSize(new Dimension(130,200));
+
+        JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH), "Select a Unit:"));
+        panel.setBackground(Color.LIGHT_GRAY);
+        panel.setPreferredSize(new Dimension(130,200));
+        panel.setSize(298,298);
+        panel.setVisible(true);
+
+        this.list = new JList(UnitList);
+        this.list.setSize(new Dimension(298,298));
+        this.list.setVisibleRowCount(9);
+
+        JScrollPane scrollPane = new JScrollPane(list);
+        scrollPane.setSize(100,300);
+        list.addListSelectionListener(this);
+
+        panel.add(scrollPane);
+        cp.add(panel);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setSize(100,90);
+        this.pack();
+        this.addWindowListener(new WindowHandler(gameEngine));
+    }
+
+    @Override
+    public void valueChanged(ListSelectionEvent e) {
+        if(!e.getValueIsAdjusting()){
+            IndexOfSelectedUnit = list.getSelectedIndex();
+            game.setCurrentlySelectedUnit(unit.get(IndexOfSelectedUnit));
+            unit.get(IndexOfSelectedUnit).setMapLocation(transporter.getMapLocation());
+            game.addUnit(unit.get(IndexOfSelectedUnit));
+            transporter.removeUnitTransport(unit.get(IndexOfSelectedUnit));
+            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+        }
+      }
+    }

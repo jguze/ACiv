@@ -1,0 +1,38 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.maps;
+
+import java.awt.image.BufferedImage;
+
+/**
+ *
+ * @author paulhunter
+ */
+public class MapInfo
+{
+
+    public String name;
+    public String description;
+    public int numberOfPlayers;
+    public BufferedImage preview;
+    public String fileName;
+    public String size;
+
+    public MapInfo()
+    {
+        
+    }
+
+    public MapInfo(String name, String Description, int numPlayers, BufferedImage mapPreview, String file)
+    {
+        this.name = name;
+        this.description = Description;
+        this.numberOfPlayers = numPlayers;
+        this.preview = mapPreview;
+        this.fileName = file;
+    }
+
+}

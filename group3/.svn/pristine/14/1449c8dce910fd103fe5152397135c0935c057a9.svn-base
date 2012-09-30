@@ -1,0 +1,187 @@
+/*
+ * Finds the best route to a specific location given a MapLocation
+ */
+
+package civ.navigation;
+
+import civ.Map;
+import civ.MapLocation;
+import civ.Unit;
+import civ.World;
+import civ.engine.TerrainManager;
+import civ.enums.TerrainType;
+import civ.enums.UnitTravelType;
+import java.util.ArrayList;
+
+public class NavigationUtils {
+    private World world;
+    private ArrayList closed = new ArrayList();
+    private SortedList open = new SortedList();
+   
+    private Map gameMap;
+    private TerrainManager terrainManager;
+    
+    private Node[][] nodes;
+    private AStarHeuristic heuristic;
+    
+    public NavigationUtils(World world, TerrainManager tM) {
+        this.heuristic = new EuclideanHeuristic();
+        this.world = world;        
+        this.gameMap = world.getMap();
+        this.terrainManager = tM;
+        
+        int mapWidth = gameMap.getMapWidth();
+        int mapHeight = gameMap.getMapHeight();
+        
+        nodes = new Node[mapWidth][mapHeight];
+        for(int x = 0; x < mapWidth; x++) {
+            for(int y = 0; y < mapHeight; y++) {
+                nodes[x][y] = new Node(x, y);
+            }
+        }
+        
+    }
+    
+    public Path findPath(Unit unit, MapLocation currentLocation, MapLocation moveToLocation) {
+        nodes[currentLocation.x][currentLocation.y].cost = 0;
+        
+        closed.clear();
+        open.clear();
+        open.add(nodes[currentLocation.x][currentLocation.y]);
+        
+        nodes[moveToLocation.x][moveToLocation.y].parent = null;
+        
+        while(open.size() != 0) {
+            Node current = getFirstInOpen();
+            if(current == nodes[moveToLocation.x][moveToLocation.y]) {
+                break;
+            }
+            
+            removeFromOpen(current);
+            addToClosed(current);
+            
+            ArrayList<Integer> x = getAroundX(current.x);
+            ArrayList<Integer> y = getAroundY(current.y);
+            
+            for(int xValue : x) {
+                for(int yValue : y) {
+                    
+                    if(xValue == currentLocation.x && yValue == currentLocation.y)
+                        continue;
+                    
+                    if(xValue != currentLocation.x && yValue != currentLocation.y)
+                        continue;
+                    
+                    int xp = xValue;
+                    int yp = yValue;
+                   
+                    if(isAllowedToMove(unit, new MapLocation(xp, yp))) {
+                        
+                        // Get neighbour tile's movement cost.
+                        float nextStepCost = current.cost + terrainManager.getTerrainInfo(new MapLocation(xp, yp)).getMovementCost();
+                        Node neighbour = nodes[xp][yp];
+                        gameMap.pathFinderVisited(xp, yp);
+                        
+                        if(nextStepCost < neighbour.cost) {
+                            if(inOpenList(neighbour)) {
+                                removeFromOpen(neighbour);
+                            }
+                            if(inClosedList(neighbour)) {
+                                removeFromClosed(neighbour);
+                            }
+                        }
+                        
+                        if(!(inOpenList(neighbour)) && !(inClosedList(neighbour))) {
+                            neighbour.cost = nextStepCost;
+                            neighbour.heuristicCost = terrainManager.getTerrainInfo(new MapLocation(xp, yp)).getMovementCost();
+                            neighbour.setParent(current);
+                            addToOpen(neighbour);
+                        }
+                    
+                    }
+                }
+            }
+        }
+            
+        if(nodes[moveToLocation.x][moveToLocation.y].parent == null) {
+            return null;
+        }
+
+        Path path = new Path();
+        Node target = nodes[moveToLocation.x][moveToLocation.y];
+        while(target != nodes[currentLocation.x][currentLocation.y]) {
+            path.prependStep(target.x, target.y);
+            target = target.parent;
+        }
+
+        path.prependStep(currentLocation.x, currentLocation.y);
+
+        return path;
+    }
+    
+    private Node getFirstInOpen() {
+        return (Node)open.getFirst();
+    }
+    
+    private void addToOpen(Node node) {
+        open.add(node);
+    }
+    
+    private boolean inOpenList(Node node) {
+        return open.contains(node);
+    }
+    
+    private void removeFromOpen(Node node) {
+        open.remove(node);
+    }
+    
+    private void addToClosed(Node node) {
+        closed.add(node);
+    }
+    
+    private boolean inClosedList(Node node) {
+        return closed.contains(node);
+    }
+    
+    private void removeFromClosed(Node node) {
+        closed.remove(node);
+    }
+
+    private boolean isAllowedToMove(Unit unit, MapLocation mapLocation) {
+        if(unit.getMovementType() == UnitTravelType.SEA) {
+            return world.getTile(mapLocation).getTerrainType() == TerrainType.OCEAN;
+        } else {
+            return !(world.getTile(mapLocation).getTerrainType() == TerrainType.OCEAN);
+        }
+    }
+    
+    private ArrayList getAroundX(int xLocation) {
+        ArrayList aroundX = new ArrayList();
+        
+        int leftX = ((xLocation - 1) < 0) ? gameMap.getMapWidth() - 1 : (xLocation - 1);
+        int rightX = ((xLocation + 1) > gameMap.getMapWidth() - 1) ? 0 : xLocation + 1;
+        
+        aroundX.add(leftX);
+        aroundX.add(xLocation);
+        aroundX.add(rightX);
+        
+        return aroundX;
+    }
+    
+    private ArrayList getAroundY(int yLocation) {
+        ArrayList aroundY = new ArrayList();
+        
+        int upY = ((yLocation - 1) < 0) ? -1 : (yLocation - 1);
+        int downY = ((yLocation + 1) > gameMap.getMapHeight() - 1) ? -1 : yLocation + 1;
+        
+        if(upY != -1)
+            aroundY.add(upY);
+        
+        aroundY.add(yLocation);
+        
+        if(downY != -1)
+            aroundY.add(downY);
+        
+        return aroundY;
+    }    
+}

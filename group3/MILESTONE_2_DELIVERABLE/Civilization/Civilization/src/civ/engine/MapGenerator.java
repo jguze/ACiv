@@ -1,0 +1,73 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.engine;
+
+import civ.enums.TerrainType;
+import java.io.*;
+import java.util.HashMap;
+import civ.Map;
+import civ.Tile;
+import civ.enums.TerrainBonusType;
+/**
+ *
+ * @author paulhunter
+ */
+public class MapGenerator
+{           
+    public static Map constructMap(String mapFilePath)
+    {
+        int width = -1;
+        int height = -1;
+        Tile[][] terrain;
+        Map result;
+        HashMap<String, TerrainType> tileMap = new HashMap<String, TerrainType>();
+        try
+        {
+            BufferedReader reader = new BufferedReader(new FileReader(new File("resources/maps/maps.spec")));
+            reader.readLine();
+            String[] values;
+            String line;
+            while((line = reader.readLine()) != null)
+            {
+                values = line.split("-");
+                tileMap.put(values[0], TerrainType.valueOf(values[1]));
+            }
+
+            BufferedReader mapFileReader = new BufferedReader(new FileReader(new File(mapFilePath)));
+            while((line = mapFileReader.readLine()) != null)
+            {
+                if(line.startsWith("width="))
+                    width = Integer.parseInt(line.substring(6));
+                if(line.startsWith("height="))
+                    height = Integer.parseInt(line.substring(7));
+                if(line.startsWith("t")) break;
+            }
+            terrain = new Tile[width][height];
+            for(int x = 0; x < width; x++)
+                for(int y = 0; y < height; y++)
+                    terrain[x][y] = new Tile(x,y,TerrainType.GRASSLAND, TerrainBonusType.NONE,false, false, false);
+
+            int y = 0;
+            while(line != null)
+            {
+                line = line.substring(6,6+width);
+                for(int x = 0; x < width; x++)
+                {
+                    terrain[x][y].setTerrainType(tileMap.get(line.charAt(x)+""));
+                }
+                y++;
+                line = mapFileReader.readLine();
+            }
+            return new Map(terrain);
+            
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+        
+    }
+}

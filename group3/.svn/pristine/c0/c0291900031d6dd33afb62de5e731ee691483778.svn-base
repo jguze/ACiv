@@ -1,0 +1,21 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.research;
+
+
+class IronWorksNode extends TreeNode {
+
+    public IronWorksNode() {
+        super();
+        turnsToComplete = 10;
+    }
+
+    @Override
+    public void researchComplete() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+}

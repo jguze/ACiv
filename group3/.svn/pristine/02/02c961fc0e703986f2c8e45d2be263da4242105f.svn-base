@@ -1,0 +1,21 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.research;
+
+
+class ArtOfWarNode extends TreeNode {
+
+    public ArtOfWarNode() {
+        super();
+        turnsToComplete = 15;
+    }
+
+    @Override
+    public void researchComplete() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+}

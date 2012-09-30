@@ -1,0 +1,29 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.research;
+
+import civ.enums.UnitType;
+import java.util.ArrayList;
+
+
+class NuclearNode extends TreeNode {
+
+    public NuclearNode(ArrayList <UnitType> aU) {
+        super(aU, "Nuclear");
+        turnsToComplete = SIXTHLEVELTURNS;
+    }
+
+    @Override
+    public void researchComplete() {
+        this.setResearched(true);
+        availableUnits.add(UnitType.NUCLEAR_MISSILE);
+    }
+
+    public String getInfo(){
+        return ("Unlocks: NUCLEAR_MISSLE");
+    }
+
+}

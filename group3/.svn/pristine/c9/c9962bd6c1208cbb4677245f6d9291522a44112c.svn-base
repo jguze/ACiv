@@ -1,0 +1,5 @@
+package civ.enums;
+
+public enum AvailableMaps {
+    earth
+}

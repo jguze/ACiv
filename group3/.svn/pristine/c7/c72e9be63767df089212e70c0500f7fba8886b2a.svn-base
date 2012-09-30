@@ -1,0 +1,133 @@
+/*
+ * Handles combat between units when a collision is detected by the game engine
+ */
+
+package civ.engine;
+
+import civ.MapLocation;
+import civ.Unit;
+import civ.World;
+import java.util.ArrayList;
+
+
+//TODO: Unit combat logic is wrong.
+/*
+ * Combat overview:
+ * 
+ * Basics:
+ * Combat is conducted between two units over a number of rounds. Each round,
+ * either the Attacking Unit (hereby referred to as AU) or the Defending Unit 
+ * (hereby referred to as DU) will deal damage equal to the unit's
+ * firepower to the other unit during a round.
+ * 
+ * If no winner was found after one round, then a new round is started. The unit
+ * that attacks is calculated and the either AU or DU will deal damage. This will
+ * continue until either AU's or DU's hit points (hereby referred to as HP) reaches
+ * 0. A battle is the set of rounds consisting of combat between two units until one
+ * dies.
+ * 
+ * Unit's Variables:
+ * Each Unit has variables used for combat, shown below:
+ * 
+ * a = BaseAttack. Used to measure the probability the AU will attack that round.
+ *                  A unit with a = 0 cannot attack.
+ * d = BaseDefense. Used to measure the probability the DU will attack that round.
+ *                  A unit with d = 0 cannot defend, and therefore dies immediately if it enters combat.
+ * fp = FirePower. The damage dealt to the opposing 's HP.
+ * HP = Health or HitPoints. A unit with 0 HP is removed from the game and has lost the battle.
+ * 
+ * Bonuses
+ * A unit's BaseDefense takes into account various factors to augment it. A unit
+ * receives terrain bonuses to d depending on the terrain it is fighting on.
+ * EXAMPLE:
+ * A defending unit is on a mountain tile and gains a 3.0x bonus. In other words
+ * the unit's d now equals 3.0d. A hill brings a 2.0x bonus, so a unit's d equals 2.0d.
+ * 
+ * Unit's also gain a 1.5x bonus to d for being fortified, which stacks with terrain. 
+ * As such, a unit fortified on a mountain has a defense value of (1.5)(3.0)d.
+ * 
+ * Q: What about multiple units on one square?
+ * A: If the AU attacks a stack of DUs, then the primary defender becomes the DU
+ * with the highest d. If the primary defender's HP reaches 0, all DUs at that
+ * location are destroyed.
+ * The exception to this rule is if the DUs are stacked in a city. The primary defender is
+ * still the DU with the highest d, but now if the primary defender dies, the battle
+ * ends and the remaining DUs stacked on the city survive.
+ * 
+ * The Formula:
+ * Now to the gist of it. To determine whether the AU or the DU attacks that round,
+ * a random number is generated between 1 to ( (a | d) - 1), the a or d is modified
+ * by the bonuses described above. The unit with the higher value multiplied by
+ * a constant c attacks that round (in our case, c = 8). The unit that attacks
+ * based on this formula deals its fp value to the opposing unit's HP. The probability
+ * of the AU attacking that round can be roughly translated to:
+ * 
+ * If D > A: p = (A - 1)/(2D)
+ * If A > D: p = 1 - ((D + 1)/(2A))
+ * 
+ * where A = (a * 8) and D = (d * 8)
+ * 
+ * Q: Air Units vs Water Units vs Land Units vs Special Units?
+ * A: TO BE DETERMINED
+ */
+
+public class CombatManager { 
+    
+    private World world;
+    private ArrayList<Unit> enemyUnitList;    
+    
+    public CombatManager(World world){
+        this.world = world;
+    }
+    
+    public void collision(Unit selectedUnit, MapLocation enemyUnitLocation, MapLocation previousLocation) {
+        int selectedUnitAtk,selectedUnitHealth,selectedUnitArmor;
+        int enemyUnitAtk,enemyUnitHealth,enemyUnitArm;
+        int dmg;
+        
+        selectedUnitAtk = selectedUnit.getBaseAttack();
+        selectedUnitArmor = selectedUnit.getBaseArmor();
+        selectedUnitHealth = selectedUnit.getHealth();
+        
+        enemyUnitList = world.getUnitList(enemyUnitLocation);
+        Unit enemyUnit = enemyUnitList.get(0);
+        enemyUnitAtk = enemyUnit.getBaseAttack();
+        enemyUnitArm = enemyUnit.getBaseArmor();
+        enemyUnitHealth = enemyUnit.getHealth();
+        
+        dmg = selectedUnitAtk - enemyUnitArm;
+        enemyUnitHealth = newHealth(dmg, enemyUnitHealth);
+        if(enemyUnitHealth>0){     
+            //Counter attack
+            enemyUnit.setHealth(enemyUnitHealth);
+            dmg = enemyUnitAtk - selectedUnitArmor; 
+            selectedUnitHealth = newHealth(dmg, selectedUnitHealth);
+            if(selectedUnitHealth<=0){
+                world.removeUnit(selectedUnit);
+                selectedUnit.getOwner().getUnits().remove(selectedUnit);
+                selectedUnit = null;
+                //Killed the reference to the selectedUnit
+            }
+        }
+        else {
+            //Enemy unit dies. Remove the enemy unit from the game
+            enemyUnit.getOwner().getUnits().remove(enemyUnit);
+            enemyUnitList.remove(enemyUnit);
+            if (world.getCity(enemyUnitLocation) != null) {
+                world.getCity(enemyUnitLocation).removeUnit(enemyUnit);
+            }
+        }
+    } 
+    
+    private int newHealth(int dmg, int health){
+        if(dmg<=0){
+            health --;
+        } else{
+            health = health - dmg;
+        }
+        if(health<=0){
+            health = 0;
+        }
+        return health;
+    }
+}

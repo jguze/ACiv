@@ -1,0 +1,63 @@
+/*
+ * Returns terrainInfo about a MapLocation
+ */
+
+package civ.engine;
+import java.io.*;
+import civ.MapLocation;
+import civ.TerrainInfo;
+import civ.World;
+import civ.enums.TerrainType;
+import java.util.EnumMap;
+import java.util.logging.Logger;
+
+public class TerrainManager {
+    private EnumMap<TerrainType, TerrainInfo> terrainInfoMap;
+    private World world;
+    
+    BufferedReader reader;
+    
+    public TerrainManager(World world) {
+        terrainInfoMap = new EnumMap<TerrainType, TerrainInfo>(TerrainType.class);
+        this.world = world;
+        loadTerrainInfo();
+    }
+    
+    public TerrainInfo getTerrainInfo(MapLocation mapLocation) {
+        return terrainInfoMap.get(world.getTile(mapLocation).getTerrainType());
+    }
+
+    public boolean constructMap(BufferedReader mapFile)
+    {
+        return true;
+    }
+
+    private void loadTerrainInfo() {
+        TerrainInfo terrainInfo;        
+        try {
+            reader = new BufferedReader(new FileReader(new File("resources/spec/terraintype.jspec")));
+            String line;
+            String [] values;
+            reader.readLine();
+            while((line = reader.readLine()) != null) {
+                values = line.split(" ");
+                terrainInfo = createTerrainInfo(values);
+                terrainInfoMap.put(TerrainType.valueOf(values[0]), terrainInfo);
+            }
+        } catch (IOException ex) {
+            Logger.getLogger("Error instantiating unit types");
+        }
+    }
+    
+    public TerrainInfo createTerrainInfo(String[] attributes) {
+        TerrainInfo tR = new TerrainInfo (
+            Integer.parseInt(attributes[1]),
+            Integer.parseInt(attributes[2]),
+            Integer.parseInt(attributes[3]),
+            Integer.parseInt(attributes[4])
+        );      
+        
+        return tR;
+    }
+    
+}

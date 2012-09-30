@@ -1,0 +1,482 @@
+package civ.engine;
+
+import civ.navigation.NavigationUtils;
+import civ.*;
+import civ.UI.MapView;
+import civ.engine.TerrainManager;
+import civ.enums.CityStyle;
+import civ.enums.UnitType;
+import civ.UI.CityView;
+import civ.UI.UnitSelectView;
+import civ.enums.TerrainType;
+import civ.navigation.Path;
+import civ.navigation.Path.Step;
+import java.awt.image.BufferedImage;
+import civ.sprites.SpriteUtils;
+import java.awt.Cursor;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+
+public class GameEngine {
+    
+    private World world;
+    private UnitManager unitManager;
+    private CityManager cityManager;
+    private TerrainManager terrainManager;
+    private NavigationUtils navUtils;
+    private CombatManager combatManager;
+    private MapView mapView;
+    private Map maps;
+    
+    private int turnCount = 0;
+    private int turnCycle = 0;
+    private int numberPlayers;
+    private Random randomGenerator = new Random();
+    
+    private Player currentPlayer;
+            
+    private Unit currentlySelectedUnit;
+    private City currentlySelectedCity;
+    private Player[] GPlayers = new Player[8];
+    
+    private char selectedAction; // Last selected action
+
+    //Getter for world (used by the mapView and miniMapView)
+    public World getWorld()
+    {
+        return world;
+    }
+    
+    public GameEngine(int NumberPlayers, String filepath, Player[] Players)
+    {
+        try
+        {
+            GPlayers = Players;
+            numberPlayers = NumberPlayers;
+            world = World.createWorld(filepath);
+            unitManager = new UnitManager(world);
+            cityManager = new CityManager(world);
+            terrainManager = new TerrainManager(world);
+            maps = world.getMap();
+            
+            for(int i = 0; i < numberPlayers; i++){
+                currentPlayer = GPlayers[i];
+                MapLocation mapLoc = new MapLocation(randomGenerator.nextInt(maps.getMapWidth()-2),randomGenerator.nextInt(maps.getMapHeight()-2));
+                MapLocation mapLocX = new MapLocation(mapLoc.x+1,mapLoc.y);
+                MapLocation mapLocY = new MapLocation(mapLoc.x,mapLoc.y+1);
+                
+                while(world.getTile(mapLoc).getTerrainType() == TerrainType.OCEAN || world.getTile(mapLocX).getTerrainType() == TerrainType.OCEAN || world.getTile(mapLocY).getTerrainType() == TerrainType.OCEAN 
+                        || isEnemyObstacle(mapLoc) == true || isEnemyObstacle(mapLocX) == true || isEnemyObstacle(mapLocY) == true){
+                    mapLoc = new MapLocation(randomGenerator.nextInt(maps.getMapWidth()-2),randomGenerator.nextInt(maps.getMapHeight()-2));
+                    mapLocX = new MapLocation(mapLoc.x+1,mapLoc.y);
+                    mapLocY = new MapLocation(mapLoc.x,mapLoc.y+1);
+                }
+                createCity("Capital", GPlayers[i].getBuildingStyle(), mapLoc);
+                currentPlayer.setCapitallocation(mapLoc);
+                createUnit(UnitType.WARRIORS, new MapLocation(mapLocX));
+                createUnit(UnitType.SETTLERS, new MapLocation(mapLocY));
+            }
+            currentPlayer = GPlayers[0];
+
+            SpriteUtils.getInstance().setWorld(world);
+            navUtils = new NavigationUtils(world, terrainManager);
+            combatManager = new CombatManager(world);
+            selectedAction = ' ';
+            
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    public void createUnit(UnitType type, MapLocation location) {
+        Unit unit = unitManager.createUnit(type);
+        unit.setOwner(currentPlayer);
+        unit.setMapLocation(location);
+        addUnit(unit);
+    }
+    
+    /*
+     * Adds the unit to the world and the current player by the units current
+     * MapLocation
+     */
+    public void addUnit(Unit unit) {
+        world.addUnit(unit);
+        currentPlayer.getUnits().add(unit);
+    }
+    
+    /*
+     * Removes the unit from the World and the current player by the units current
+     * mapLocation
+     */
+    public void removeUnit(Unit unit) {
+        world.removeUnit(unit);
+        unit.getOwner().getUnits().remove(unit);
+    }
+    
+    public void createCity(String name, CityStyle type, MapLocation mapLocation) {
+        City city = cityManager.createCity(name, type, mapLocation);
+        city.setLevel(1);
+        city.setMapLocation(mapLocation);
+        city.setOwner(currentPlayer);
+        addCity(city);
+    }
+    
+    public void addCity(City city) {
+        world.addCity(city);
+        currentPlayer.addCity(city);
+    }
+    
+    public void changePlayer(){
+        turnCycle = turnCycle + 1;
+        if(turnCycle == numberPlayers){
+            turnCount = turnCount + 1;
+            turnCycle = 0;
+        }
+        currentPlayer = GPlayers[turnCycle];
+        updateUnits(currentPlayer);
+        MapLocation location = currentPlayer.getCapitalLocation();
+        mapView.moveCamera(location);
+    }
+    
+    public int getTurnCount(){
+        return turnCount;
+    }
+
+    public void findMapEntity(MapLocation click){
+        ArrayList<Unit> unitList = world.getUnitList(click);
+        City currentCity = world.getCity(click);
+        
+        if(currentlySelectedUnit != null) {
+            mapView.drawTile(currentlySelectedUnit.getMapLocation());
+        }
+        
+        if (currentlySelectedCity != null) {
+            mapView.drawTile(currentlySelectedCity.getMapLocation());
+        }
+        
+        if(currentCity != null && !isEnemyCity(click)){
+            currentlySelectedCity = currentCity;
+            mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+            CityView CV = new CityView(currentlySelectedCity, this);
+            currentlySelectedUnit = null;
+        } else if (currentCity == null && !unitList.isEmpty() && !isEnemyUnit(click)){
+            if(unitList.size() > 1){
+                UnitSelectView USL = new UnitSelectView(unitList);
+                currentlySelectedUnit = unitList.get(USL.getIndexOfSelectedUnit());
+                mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+                currentlySelectedCity = null;
+            }
+            else{
+                currentlySelectedUnit = unitList.get(0);
+                mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+                currentlySelectedCity = null;
+            }
+        } else {
+            currentlySelectedUnit = null;
+            currentlySelectedCity = null;
+            mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+        }
+           
+    }
+    
+    // Knows there is a selected unit and a command, now wait to determine what to do.
+    // TODO: This should take into account what commands are valid for what the
+    // current state of the engine is (selected unit, city etc)
+    public void setCommand(char key){
+        selectedAction = key;
+    }
+    
+    public char getCommand() {
+        return selectedAction;
+    }
+
+    //desired
+    public void setUnitDestination(MapLocation desiredLocation) {
+        //ArrayList<MapLocation> moveList = navUtils.getRoute(currentlySelectedUnit, desiredLocation);
+        if (currentlySelectedUnit == null){
+            return;
+        }
+           
+        MapLocation previousLocation = currentlySelectedUnit.getMapLocation();
+        
+        if(previousLocation.compare(desiredLocation)){
+            currentlySelectedUnit = null;
+            mapView.drawTile(desiredLocation);
+            return;
+        }
+        
+        world.getMap().clearVisited();
+        
+        Path moveList = navUtils.findPath(currentlySelectedUnit, previousLocation, desiredLocation);
+        currentlySelectedUnit.setMoveList(moveList);
+        updateUnit(currentlySelectedUnit);
+        currentlySelectedUnit = null;
+       
+    }
+    
+    private boolean isEnemyObstacle(MapLocation mapLocation) {
+        if (isEnemyCity(mapLocation) || isEnemyUnit(mapLocation)) {
+            return true;
+        }   
+        return false;
+    }
+    
+    private boolean isEnemyUnit(MapLocation mapLocation) {
+        ArrayList<Unit> units;
+        units = world.getUnitList(mapLocation);
+                
+        if (units.isEmpty()) {
+            return false;
+        } else if (world.getUnitList(mapLocation).get(0).getOwner().equals(currentPlayer)) {
+            return false;
+        } else {
+            return true;
+        }
+   }     
+ 
+   private boolean isEnemyCity(MapLocation mapLocation) {
+        City isCity = world.getCity(mapLocation);
+        if (isCity == null) {
+            return false;
+        } else if (isCity.getOwner().equals(currentPlayer)) {
+            return false;
+        } else {
+            return true;
+        }
+   }
+  
+    
+   public Unit getCurrentlySelectedUnit() {
+        return currentlySelectedUnit;
+   }
+   
+   public City getCurrentlySelectedCity() {
+       return currentlySelectedCity;
+   }
+    
+   public MapLocation getCurrentlySelectedUnitTile() {
+        if(currentlySelectedUnit == null) return null;
+        return currentlySelectedUnit.getMapLocation();
+   }
+   
+   public MapLocation getCurrentlySelectedCityTile() {
+        if(currentlySelectedCity == null) return null;
+        return currentlySelectedCity.getMapLocation();
+   }
+
+   public void setMapView(MapView mV) {
+        mapView = mV;
+   }
+   
+   public BufferedImage getTerrainSprite(MapLocation mapLocation) {
+       return SpriteUtils.getInstance().getTerrainSprite(mapLocation);
+   }
+   
+   public BufferedImage getUnitSprite(MapLocation mapLocation) {
+       return SpriteUtils.getInstance().getUnitSprite(mapLocation);
+   }
+   
+   public BufferedImage getUnitSprite(UnitType unitType) {
+       return SpriteUtils.getInstance().getUnitSprite(unitType);
+   }
+   
+   public BufferedImage getCitySprite(MapLocation mapLocation) {
+       return SpriteUtils.getInstance().getCitySprite(mapLocation);
+   }
+   
+   public NavigationUtils getNavigationUtils() {
+       return this.navUtils;
+   }
+
+    public void handleMouseClick(MouseEvent e) {
+        if(e.getButton() == MouseEvent.BUTTON1)
+        {
+            if (getCommand() == 'g') {
+                setUnitDestination(mapView.getMapLocation(e));
+                setCommand(' ');
+                mapView.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                
+                //TODO: Optimize this. Just hacking things together to get an idea of how they work.
+                mapView.setPath(null);
+                mapView.paintMap();
+            } else {
+                findMapEntity(mapView.getMapLocation(e));
+            }
+        }
+        else if(e.getButton() == MouseEvent.BUTTON3)
+        {
+            mapView.moveCamera(mapView.getMapLocation(e));
+            mapView.reHighlight();
+        }
+    }
+
+    public void handleKeyPress(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_G) {
+            readyUnitForMovement();
+        } 
+        
+        //Null check on the currentlySelectedUnit. No more NPE if no unit was selected.
+        if (getCurrentlySelectedUnit() != null) {
+            if (e.getKeyCode() == KeyEvent.VK_B && getCurrentlySelectedUnit().getUnitType() == UnitType.SETTLERS) {
+                 createCityFromSettler();
+            }  
+        
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                currentlySelectedUnit = null;
+                setCommand(' ');
+                mapView.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                mapView.setPath(null);
+                mapView.paintMap();
+            }
+        }
+        
+        if (e.getKeyCode() == KeyEvent.VK_C) {
+            MapLocation location = currentPlayer.getCapitalLocation();
+            mapView.moveCamera(location);
+        }
+
+        //Are we panning a map :D?
+        if (e.getKeyCode() == KeyEvent.VK_W)
+            mapView.shiftCamera(0, -1);
+        else if(e.getKeyCode() == KeyEvent.VK_S)
+            mapView.shiftCamera(0, 1);
+        else if(e.getKeyCode() == KeyEvent.VK_A)
+            mapView.shiftCamera(-1, 0);
+        else if(e.getKeyCode() == KeyEvent.VK_D)
+            mapView.shiftCamera(1, 0);
+        
+        //:TODO: Needs a workaround for unit selection case D=
+        mapView.reHighlight(); 
+    }
+
+    public void handleMouseMove(MouseEvent e) {    
+        if(getCommand() == 'g') {
+            mapView.setPath(getNavigationUtils().findPath(currentlySelectedUnit, currentlySelectedUnit.getMapLocation(), mapView.getMapLocation(e)));
+            mapView.paintMap();
+        }
+    }
+
+    private void updateUnit(Unit unit) {
+        MapLocation previousLocation = unit.getMapLocation();
+        updateUnitLocation(unit);
+        MapLocation desiredLocation = unit.getMapLocation();
+                   
+        if(isEnemyUnit(desiredLocation)){
+            combatManager.collision(currentlySelectedUnit, desiredLocation, previousLocation);
+            mapView.paintMap();
+        }        
+    }
+
+    private void updateUnitLocation(Unit unit) {
+        
+        MapLocation previousLocation = unit.getMapLocation();
+        MapLocation desiredLocation = unit.getMapLocation();
+        
+        int movementAvailable = unit.getMovementRange();
+        
+        // If we have a unit that doesn't have a movement path (ie. isn't moving, or set to move)
+        if(unit.getPath() == null || unit.getState() == Unit.State.MOVE_BLOCKED) {
+            return;
+        }
+        
+        while(unit.getPath().getLength() != 0) {
+            unit.setState(Unit.State.MOVING);
+            previousLocation = unit.getMapLocation();
+            Step step = unit.getPath().getStep(0);
+            desiredLocation = new MapLocation(step.getX(), step.getY());
+            
+            int terrainCost = terrainManager.getTerrainInfo(desiredLocation).getMovementCost();
+            
+            if(previousLocation.toString().equals(desiredLocation.toString())) {
+                unit.getPath().removeCurrentStep();
+                continue;
+            }
+            
+            if(movementAvailable - terrainCost < 0 
+                    && !(movementAvailable == unit.getMovementRange() && movementAvailable < terrainCost))
+            {
+                break;  
+            }
+            
+            unit.getPath().removeCurrentStep();
+            
+            movementAvailable -= terrainCost;
+        
+            world.removeUnit(unit);
+            unit.setMapLocation(desiredLocation);
+            world.addUnit(unit);
+            mapView.drawMovedUnit(previousLocation, desiredLocation);
+             
+            // TODO Allen - Test this because I'm not sure if I accidentally broke something by implementing the move queue
+            if(isEnemyUnit(desiredLocation) == true){
+                combatManager.collision(currentlySelectedUnit, desiredLocation, previousLocation);
+                mapView.paintMap();
+            }
+        }
+
+        if(movementAvailable <= 0)
+            unit.setState(Unit.State.MOVE_BLOCKED);
+        else
+            unit.setState(Unit.State.IDLE);        
+    }
+
+    private void updateUnits(Player currentPlayer) {
+        if(!(currentPlayer.getUnits().isEmpty())) {
+            for(Unit unit : currentPlayer.getUnits()) {
+                if(unit.getPath() != null && unit.getPath().getLength() > 1) {
+                    // we are moving
+                    unit.setState(Unit.State.MOVING);
+                } else {
+                    unit.setState(Unit.State.IDLE);
+                }
+                updateUnit(unit);
+            }
+        }
+    }
+
+    public void createCityFromSettler() {
+        setCommand('b');
+        String newCityName = JOptionPane.showInputDialog("Enter a new city name.", null);
+        if(newCityName != null) {
+            createCity(newCityName, currentPlayer.getBuildingStyle(), getCurrentlySelectedUnitTile());            
+            removeUnit(currentlySelectedUnit);
+            mapView.paintMap();
+        }
+    }
+    
+    public Unit getUnitInfo(UnitType unitType) {
+        return unitManager.getUnitInfo(unitType);
+    }
+
+    public void readyUnitForMovement() {
+        if (getCurrentlySelectedUnit() == null) {
+            return;
+        }
+        setCommand('g');
+        mapView.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
+    /*
+     * TODO: ALL TURN STUFF FOR NEXT TURN SHOULD BE HANDLED HERE
+     * ALL IN ONE PLACE MOFOS.
+     */
+    public void nextTurn() {
+        ArrayList<City> playerCities = currentPlayer.getCities();
+        
+        if (!playerCities.isEmpty()) {
+            for (City city : playerCities) {
+                UnitType unitCreated = city.nextTurn();
+                if (unitCreated != null) {
+                    createUnit(unitCreated, city.getMapLocation());
+                }
+            }
+        }        
+    }
+}

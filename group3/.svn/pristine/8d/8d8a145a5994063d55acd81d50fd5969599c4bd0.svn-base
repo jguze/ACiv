@@ -1,0 +1,383 @@
+package civ.UI;
+
+import civ.SaveObject;
+import civ.engine.GameEngine;
+import civ.engine.WindowUtils;
+import civ.enums.UnitType;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.SwingConstants;
+
+public class CivFrame extends JFrame implements ActionListener
+{
+    private MapView mapView;
+    private MiniMapView miniMapView;
+    private GameEngine civEngine;
+    public Dimension frameSize;
+    JButton turnDone;
+    JLabel turnCounter;
+    JPanel turnActions;
+    JPanel playerInfoPanel;
+    JLabel turnsCounted, Age, secondAge;
+    
+    JMenuBar menuBar;
+    
+    JMenu  fileMenu, researchMenu, commandMenu, helpMenu;
+    
+    JMenuItem save, load, quit;
+    JMenuItem move, hold, buildCity;
+    JMenuItem viewTree, centerCapital;
+    JMenuItem about, tutorial;    
+    PlayerInfoObj playerInfoObj;
+   
+    Container CP = this.getContentPane();
+
+    public CivFrame(GameEngine engine)
+    {
+        super("Almost Civilization Game");
+        civEngine = engine;
+        setup();
+    }
+    
+    //Used when loading from a save
+    public CivFrame(SaveObject save) {
+        super("Almost Civilization Game");
+        civEngine = save.gameEngine;
+        civEngine.setCivFrame(this); // THIS NEEDS TO BE DONE IN THAT ORDER
+        civEngine.instantiateUnsavedObjects();
+        setup();
+        turnCounter.setText(Integer.toString(civEngine.getYear()));
+    }
+    
+    private void setup() {
+        //They look smexiers with borders, BUT DONT TOUCH!
+        miniMapView = new MiniMapView(202,122);
+        mapView = new MapView(civEngine, 632, 592, miniMapView);
+        
+        menuBar = new JMenuBar();
+        
+        fileMenu = new JMenu("File", true);
+        
+        save = new JMenuItem("Save");
+        load = new JMenuItem("Load");
+        quit = new JMenuItem("Quit");
+        
+        commandMenu = new JMenu("Commands");
+        
+        move = new JMenuItem("Goto Location", 'g');
+        hold = new JMenuItem ("Hold Position", 'h');
+        buildCity = new JMenuItem("Build City", 'b');
+        centerCapital = new JMenuItem("Center on Capital", 'c');
+        
+        researchMenu = new JMenu("Research");
+        
+        viewTree = new JMenuItem("Research Tree", 'r');        
+        
+        helpMenu = new JMenu("Help");
+        
+        about = new JMenuItem("About PaulCiv");
+        tutorial = new JMenuItem("Tutorial");
+        
+        save.addActionListener(this);
+        load.addActionListener(this);
+        quit.addActionListener(this);
+        move.addActionListener(this);
+        hold.addActionListener(this);
+        buildCity.addActionListener(this);
+        viewTree.addActionListener(this);
+        about.addActionListener(this);
+        tutorial.addActionListener(this);
+        centerCapital.addActionListener(this);
+        
+        fileMenu.add(save);
+        fileMenu.add(load);
+        fileMenu.add(quit);
+        
+        commandMenu.add(move);
+        commandMenu.add(hold);
+        commandMenu.add(buildCity);
+        commandMenu.add(centerCapital);
+        
+        researchMenu.add(viewTree);
+        
+        helpMenu.add(about);
+        helpMenu.add(tutorial);
+        
+        menuBar.add(fileMenu);
+        menuBar.add(commandMenu);
+        menuBar.add(researchMenu);
+        menuBar.add(helpMenu);
+        
+        this.setJMenuBar(menuBar);
+        
+        CP.setLayout(this.createLayout());
+        CP.setPreferredSize(new Dimension(850, 600));
+        
+        frameSize = new Dimension(850, 600);
+        WindowUtils.centerOnScreen(this, frameSize);
+        CP.setBackground(Color.DARK_GRAY);
+        Insets buttonMargin = new Insets(5, 1, 5, 1);
+        
+        //Use this line to have a 10x10 tile map.
+        //mapView = new MapView(civEngine, 302, 302);
+        
+        turnDone = new JButton("Turn Done");
+        turnDone.setBackground(Color.LIGHT_GRAY);
+        turnDone.setForeground(Color.BLACK);
+        turnDone.setMargin(buttonMargin);
+        turnDone.addActionListener(this);
+    
+        turnCounter = new JLabel("2000");
+        turnCounter.setHorizontalTextPosition(SwingConstants.RIGHT);
+        turnCounter.setFont(new Font("Courier", Font.PLAIN, 16));
+        turnCounter.setFocusable(false);
+        
+        GridBagConstraints c = new GridBagConstraints();
+        
+        turnActions = new JPanel();
+        turnActions.setLayout(turnActionsLayout());
+        turnActions.setBackground(Color.GRAY);
+        turnActions.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 2));
+        
+        turnsCounted = new JLabel("Year:");
+        turnsCounted.setForeground(Color.WHITE);
+
+        Age = new JLabel("BC");
+        Age.setForeground(Color.WHITE);
+        secondAge = new JLabel("AD");
+        secondAge.setForeground(Color.WHITE);
+
+        c.insets = new Insets(3,3,3,3);
+        c.gridx = 2;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(Age, c);
+ 
+        c.insets = new Insets(3,3,3,3);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(turnsCounted, c);
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 3;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(turnDone, c);
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 1;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 2;
+        c.anchor = GridBagConstraints.WEST;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(turnCounter, c);
+        
+
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(miniMapView, c);
+
+        //Add the main map view to the frame.
+        c.insets = new Insets(3,3,3,3);
+        c.gridx = 1;
+        c.gridy = 0;
+        c.gridheight = 3;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(mapView, c);
+
+        createPlayerDataPanel();
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 2;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(turnActions, c);
+        
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setResizable(false);
+        this.setSize(800, 600);
+        this.pack(); //DO NOT REMOVE, YOU WILL BREAK THINGS YOU DONT EVEN UNDERSTAND!
+        mapView.paintMap();
+        this.setVisible(true);
+        civEngine.centerOnCity();
+        civEngine.setCivFrame(this);
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == turnDone) {
+            turnDone();
+        } else if(e.getSource() == move) {
+            civEngine.readyUnitForMovement();
+        } else if(e.getSource() == hold) {
+            civEngine.holdUnitForMovement(); 
+        } else if(e.getSource() == buildCity) {
+            civEngine.createCityFromSettler();             
+        } else if (e.getSource() == save) {
+            civEngine.save(new SaveObject(civEngine));
+        } else if (e.getSource() == load) {
+            loadSavedGame();
+        } else if (e.getSource() == viewTree) {
+            civEngine.viewResearchTree();
+        } else if (e.getSource() == about){
+            TextView TV = new TextView("resources/UI stuff/About.txt");
+        } else if (e.getSource() == tutorial){
+            TextView TV = new TextView("resources/UI stuff/Tutorial.txt");
+        } else if (e.getSource() == buildCity){
+            if(civEngine.getCurrentlySelectedUnit().getUnitType() == UnitType.SETTLERS){
+                civEngine.createCityFromSettler();
+            }
+        } else if (e.getSource() == centerCapital){
+            civEngine.centerOnCity();
+        } else if (e.getSource() == quit){
+            int yes = JOptionPane.YES_OPTION;
+            yes = JOptionPane.showConfirmDialog(null, "Are you sure you want to quit?", "Input", JOptionPane.YES_NO_OPTION);
+            if(yes == JOptionPane.YES_OPTION){
+                this.setVisible(false);
+                this.dispose();
+                SplashView SV = new SplashView();
+            }
+        }
+    }
+
+    private GridBagLayout createLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {210, 640};
+        GBL.rowHeights = new int[] {130, 235, 235};
+        return GBL;
+    }
+    
+     private GridBagLayout turnActionsLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {30, 113, 40};
+        GBL.rowHeights = new int[] {45, 45};
+        return GBL;
+    }
+
+    private void loadSavedGame() {
+        SaveObject save = civEngine.load();
+        if (save == null) {
+            return;
+        }
+            
+        this.setVisible(false);
+        this.dispose();
+        CivFrame civ = new CivFrame(save);
+    }
+
+    public void turnDone() {
+        civEngine.nextTurn();
+        turnCounter.setText(String.valueOf(civEngine.getYear()));
+        if(civEngine.getTurn() >= 50){
+            turnActions.remove(Age);
+            GridBagConstraints c = new GridBagConstraints();
+            c.insets = new Insets(3,3,3,3);
+            c.gridx = 2;
+            c.gridy = 1;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            turnActions.add(secondAge, c);
+        }
+        mapView.requestFocusInWindow();
+    }
+
+    public void endGame(){
+        WinView civ = new WinView(civEngine.getCurPlayer().getName());
+    }
+
+    private void createPlayerDataPanel() {
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4,4,4,4);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridheight = 1;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        playerInfoPanel = new JPanel(null);
+        playerInfoPanel.setPreferredSize(new Dimension(202,152));
+        playerInfoPanel.setBackground(Color.GRAY);
+        playerInfoPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 3), civEngine.getCurPlayer().getName(), TitledBorder.LEFT, TitledBorder.DEFAULT_POSITION , new Font("Courier", Font.BOLD, 12), Color.WHITE));
+        
+        JLabel curGold = new JLabel("Gold: " + civEngine.getCurPlayer().getGold());
+        curGold.setBounds(10, 15, 202, 30);
+        
+        JLabel curScience = new JLabel("Science: " + civEngine.getCurPlayer().getScience());
+        curScience.setBounds(10, 35, 202, 30);
+        
+        JLabel numOfUnits = new JLabel("# Units: " + civEngine.getCurPlayer().getUnits().size());
+        numOfUnits.setBounds(10, 55, 202, 30);
+        
+        JLabel numOfCities = new JLabel("# Cities: " + civEngine.getCurPlayer().getCities().size());
+        numOfCities.setBounds(10, 75, 202, 30);
+                
+        JLabel levelOfOPness = new JLabel("Aciv Level: " + civEngine.getCurPlayer().getLevelOfAwesome());
+        levelOfOPness.setBounds(10, 95, 202, 30);
+        
+        JLabel researching = new JLabel("Research: " + civEngine.getCurPlayer().getResearchTree().getActiveResearch());
+        researching.setBounds(10, 115, 202, 30);
+        
+        playerInfoPanel.add(curGold);
+        playerInfoPanel.add(curScience);
+        playerInfoPanel.add(numOfUnits);
+        playerInfoPanel.add(numOfCities);
+        playerInfoPanel.add(levelOfOPness);
+        playerInfoPanel.add(researching);
+        
+        JLabel[] info = {curGold, curScience, numOfUnits, numOfCities, levelOfOPness, researching};
+        playerInfoObj = new PlayerInfoObj(info);
+        
+        CP.add(playerInfoPanel, gbc);
+    }
+    
+    public void updatePlayerInfo() {
+        playerInfoPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 3), civEngine.getCurPlayer().getName(), TitledBorder.LEFT, TitledBorder.DEFAULT_POSITION , new Font("Courier", Font.BOLD, 12), Color.WHITE));
+        playerInfoObj.curGold.setText("Gold: " + civEngine.getCurPlayer().getGold());
+        playerInfoObj.curScience.setText("Science: " + civEngine.getCurPlayer().getScience());
+        playerInfoObj.numOfUnits.setText("# Units: " + civEngine.getCurPlayer().getUnits().size());
+        playerInfoObj.numOfCities.setText("# Cities: " + civEngine.getCurPlayer().getCities().size());
+        playerInfoObj.OPness.setText("ACiv Level: " + civEngine.getCurPlayer().getLevelOfAwesome());
+        playerInfoObj.researching.setText("Research: " + civEngine.getCurPlayer().getResearchTree().getActiveResearch());
+    }
+    
+    private class PlayerInfoObj {
+        public JLabel curGold, curScience, numOfUnits, numOfCities, OPness, researching;
+        public PlayerInfoObj(JLabel[] info) {
+            curGold = info[0];
+            curScience = info[1];
+            numOfUnits = info[2];
+            numOfCities = info[3];
+            OPness = info[4];
+            researching = info[5];
+        }
+    }
+}

@@ -1,0 +1,9 @@
+About Almost Civ:
+
+  This game is group 3's class project for the class Seng 271 summer 2012.
+  The idea of the project was to mimik the game called Civilizations to as much an extent as possible.
+  
+  Group 3 cosisted of these members:
+      Mark Roller, Paul Hunter, Scott Low, Allen Chang, Mikko Sanchez, and Justin Guze.
+      
+  

@@ -1,0 +1,105 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.research;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+
+/**
+ * The ResearchTree is the tech path of the player. A research tree contains
+ * TreeNodes, each of which is a unique class. A Node cannot be completed unless
+ * its children are already completed, denoted by some boolean flag isResearched.
+ * 
+ * When a TreeNode is completed, a method complete() is called from the TreeNode.
+ * The Player's available units that he can build changes depending on what was
+ * researched. Available units can be represented by a String list that we give
+ * to the UI possibly.
+ * 
+ * @author Justin
+ */
+public class ResearchTree implements Serializable {
+    public TreeNode root;
+    public ArrayList<TreeNode> bfsQueue;
+    private static int onlyTestOnce = 0;
+    
+    public ResearchTree() {
+        init();
+        bfsQueueCreation();
+        testQueue();
+    }
+
+    private void init() {
+        //Initialize all the nodes
+        root = new RootNode();
+        TreeNode nuclear = new NuclearNode();
+        TreeNode capitalism = new CapitalismNode();
+        TreeNode advancedMech = new AdvancedMechNode();
+        TreeNode modernWarefare = new ModernWarefareNode();
+        TreeNode politics = new PoliticsNode();
+        TreeNode artOfWar = new ArtOfWarNode();
+        TreeNode flight = new FlightNode();
+        TreeNode honour = new HonourNode();
+        TreeNode ironWorks = new IronWorksNode();
+        TreeNode warriorCode = new WarriorCodeNode();
+        TreeNode math = new MathNode();
+        TreeNode seafaring = new SeafaringNode();
+        
+        //Add children to proper nodes
+        root.addChildren(nuclear, capitalism);
+        nuclear.addChildren(politics, advancedMech);
+        capitalism.addChild(politics);
+        advancedMech.addChildren(modernWarefare, flight);
+        modernWarefare.addChildren(artOfWar, ironWorks);
+        politics.addChild(honour);
+        artOfWar.addChild(honour);
+        flight.addChildren(ironWorks, seafaring);
+        honour.addChild(warriorCode);
+        ironWorks.addChildren(warriorCode, math);
+    }
+
+    /**
+     * Creates a breadth first search queue of the research tree for searching
+     * purposes, since searching via the root is difficult when there are two
+     * top level nodes. Nodes without edges will not be added.
+    */
+    private void bfsQueueCreation() {
+        bfsQueue = new ArrayList<TreeNode>();
+        HashSet currentLevel = new HashSet<TreeNode>();
+        HashMap<TreeNode, TreeNode> blacklist = new HashMap<TreeNode, TreeNode>();
+        
+        ArrayList<TreeNode> currentChildren = new ArrayList(root.getChildren());
+        
+        do {
+            currentLevel.clear();
+            for (TreeNode child : currentChildren) {
+                if (blacklist.get(child) == null) {
+                    blacklist.put(child, child);
+                    currentLevel.addAll(child.getChildren());
+                    bfsQueue.add(child);
+                }
+            }
+            currentChildren.clear();
+            currentChildren.addAll(currentLevel);
+        } while (!currentLevel.isEmpty());
+        // Continue adding to the queue until there are no more children that
+        // are not in our blacklist
+    }
+    
+    //Quick test to see the output of the bfsQueue
+    public void testQueue() {
+        if (onlyTestOnce == 0) {
+            return;
+        }
+        for (TreeNode e : bfsQueue) {
+            System.out.println(e.toString());
+        }
+        onlyTestOnce = 0;
+    }
+}
+
+

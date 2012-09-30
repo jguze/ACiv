@@ -1,0 +1,73 @@
+/*
+ * Handles combat between units when a collision is detected by the game engine
+ */
+
+package civ.engine;
+
+import civ.MapLocation;
+import civ.Unit;
+import civ.World;
+import java.util.ArrayList;
+
+
+//TODO: Unit combat logic is wrong. See freeciv page for details.
+public class CombatManager { 
+    
+    private World world;
+    private ArrayList<Unit> enemyUnitList;    
+    
+    public CombatManager(World world){
+        this.world = world;
+    }
+    
+    public void collision(Unit selectedUnit, MapLocation enemyUnitLocation, MapLocation previousLocation) {
+        int selectedUnitAtk,selectedUnitHealth,selectedUnitArmor;
+        int enemyUnitAtk,enemyUnitHealth,enemyUnitArm;
+        int dmg;
+        
+        selectedUnitAtk = selectedUnit.getBaseAttack();
+        selectedUnitArmor = selectedUnit.getBaseArmor();
+        selectedUnitHealth = selectedUnit.getHealth();
+        
+        enemyUnitList = world.getUnitList(enemyUnitLocation);
+        Unit enemyUnit = enemyUnitList.get(0);
+        enemyUnitAtk = enemyUnit.getBaseAttack();
+        enemyUnitArm = enemyUnit.getBaseArmor();
+        enemyUnitHealth = enemyUnit.getHealth();
+        
+        dmg = selectedUnitAtk - enemyUnitArm;
+        enemyUnitHealth = newHealth(dmg, enemyUnitHealth);
+        if(enemyUnitHealth>0){     
+            //Counter attack
+            enemyUnit.setHealth(enemyUnitHealth);
+            dmg = enemyUnitAtk - selectedUnitArmor; 
+            selectedUnitHealth = newHealth(dmg, selectedUnitHealth);
+            if(selectedUnitHealth<=0){
+                world.removeUnit(selectedUnit);
+                selectedUnit.getOwner().getUnits().remove(selectedUnit);
+                selectedUnit = null;
+                //Killed the reference to the selectedUnit
+            }
+        }
+        else {
+            //Enemy unit dies. Remove the enemy unit from the game
+            enemyUnit.getOwner().getUnits().remove(enemyUnit);
+            enemyUnitList.remove(enemyUnit);
+            if (world.getCity(enemyUnitLocation) != null) {
+                world.getCity(enemyUnitLocation).removeUnit(enemyUnit);
+            }
+        }
+    } 
+    
+    private int newHealth(int dmg, int health){
+        if(dmg<=0){
+            health --;
+        } else{
+            health = health - dmg;
+        }
+        if(health<=0){
+            health = 0;
+        }
+        return health;
+    }
+}

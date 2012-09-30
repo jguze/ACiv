@@ -1,0 +1,81 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package civ.UI;
+
+
+import civ.Unit;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import javax.swing.*;
+import java.awt.Color;
+import java.util.ArrayList;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+
+/**
+ *
+ * @author Mikko Sanchez =D
+ */
+public class UnitSelectView extends JFrame implements ListSelectionListener
+{
+    
+    
+    private Container up;
+    private JList list;
+    private int IndexOfSelectedUnit;
+    public UnitSelectView(ArrayList<Unit> units){
+        super("Select yo unit foo");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        int i;
+        up = getContentPane();
+        String UnitList[] = new String[units.size()];
+        for(i = 0; i < units.size(); i++){
+            UnitList[i] = units.get(i).getUnitType().toString();
+        }
+        
+        up.setLayout(new FlowLayout());
+        up.setBackground(Color.RED);
+        
+        this.list = new JList(UnitList);
+        this.list.setVisibleRowCount(3);
+        JScrollPane scrollPane = new JScrollPane(list);
+        
+         list.addListSelectionListener(this);
+
+        up.add(scrollPane);
+        up.setVisible(true);
+        
+        
+        this.setSize(150, 100);
+        this.setVisible(true);
+        this.setResizable(false);
+        
+    }
+    
+    public void isUnitSelected(ListSelectionEvent event){
+        if(!event.getValueIsAdjusting()){
+            IndexOfSelectedUnit = list.getSelectedIndex();
+            this.dispose();
+        }
+            
+    }
+    
+    public int getIndexOfSelectedUnit(){
+        return IndexOfSelectedUnit;
+    }
+
+    @Override
+    public void valueChanged(ListSelectionEvent e) {
+        if(!e.getValueIsAdjusting()){
+            IndexOfSelectedUnit = list.getSelectedIndex();
+            this.dispose();
+        }
+    
+    
+    
+    }
+}
+    

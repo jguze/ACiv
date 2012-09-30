@@ -1,0 +1,104 @@
+package civ.UI;
+
+import civ.Player;
+import civ.engine.GameEngine;
+import civ.engine.WindowHandler;
+import civ.research.ResearchTree;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import javax.swing.*;
+
+//TODO: Add cityname within panel
+public class ResearchView extends JFrame 
+                  implements ActionListener {
+    
+    private Container cp;
+    private GameEngine gameEngine;
+    private ResearchTree researchTree;
+    
+    private JButton nuclear, capitalism, advancedMech, modernWarefare, politics, artOfWar, flight, honour, ironWorks, warriorCode, math, seafaring;   
+    
+    public ResearchView(Player currentPlayer, GameEngine gE) {
+        super(currentPlayer.getName());
+        gameEngine = gE;
+        researchTree = currentPlayer.getResearchTree();
+        
+        this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        
+        cp = getContentPane();
+        cp.setLayout(null);
+        cp.setPreferredSize(new Dimension(600, 590));
+        
+        nuclear = new JButton("Nuclear");
+        nuclear.setBounds(225, 20, 150, 75);
+        cp.add(nuclear);   
+        
+        capitalism = new JButton("Capitalism");
+        capitalism.setBounds(25, 210, 150, 75);
+        cp.add(capitalism);
+        
+        advancedMech = new JButton("Advanced Mech");
+        advancedMech.setBounds(425, 115, 150, 75);
+        cp.add(advancedMech);  
+        
+        modernWarefare = new JButton("Modern Warefare");
+        modernWarefare.setBounds(225, 210, 150, 75);
+        cp.add(modernWarefare); 
+        
+        politics = new JButton("Politics");
+        politics.setBounds(25, 305, 150, 75);
+        cp.add(politics);
+        
+        artOfWar = new JButton("Art of War");
+        artOfWar.setBounds(225, 305, 150, 75);
+        cp.add(artOfWar);
+        
+        flight = new JButton("Flight");
+        flight.setBounds(425, 305, 150, 75);
+        cp.add(flight);
+        
+        honour = new JButton("Honour");
+        honour.setBounds(25, 400, 150, 75);
+        cp.add(honour);
+        
+        ironWorks = new JButton("Iron Works");
+        ironWorks.setBounds(225, 400, 150, 75);
+        cp.add(ironWorks);
+        
+        warriorCode = new JButton("Warrior Code");
+        warriorCode.setBounds(25, 495, 150, 75);
+        cp.add(warriorCode);   
+        
+        math = new JButton("Math");
+        math.setBounds(225, 495, 150, 75);
+        cp.add(math);  
+        
+        seafaring = new JButton("Seafaring");
+        seafaring.setBounds(425, 495, 150, 75);
+        cp.add(seafaring);         
+        
+        try{
+            BufferedImage myPicture = ImageIO.read(new File("resources/images/tree_bg.png")); 
+            JLabel picLabel = new JLabel(new ImageIcon( myPicture ));
+            picLabel.setBounds(0, 0, 600, 590);
+            cp.add(picLabel);
+        } catch (IOException e){
+            e.printStackTrace();
+        }      
+        
+        this.setVisible(true);
+        this.setResizable(false);
+        this.pack();
+        this.addWindowListener(new WindowHandler(gameEngine));        
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+}

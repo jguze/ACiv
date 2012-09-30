@@ -1,0 +1,304 @@
+package civ.UI;
+
+import civ.engine.GameEngine;
+import civ.MapLocation;
+import civ.Unit;
+import civ.City;
+import civ.navigation.NavigationUtils;
+import civ.navigation.Path;
+import java.awt.image.BufferedImage;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import javax.swing.*;
+
+public class MapView extends JPanel implements MouseListener, KeyListener, MouseMotionListener
+{
+    private GameEngine gameEngine;
+    private int tileSize;
+    private BufferedImage currentView;
+    //The Top left tile in the map view
+    private MapLocation CameraOffset;
+    private int viewTileWidth;
+    private int viewTileHeight;
+    private int mapWidth;
+    private int mapHeight;
+    
+    private Path path;
+
+    
+    public MapView(GameEngine engine, int width, int height)
+    {
+        gameEngine = engine;
+        this.tileSize = gameEngine.getSpriteUtility().getTileSize();
+
+        viewTileWidth = (width-2)/tileSize;
+        viewTileHeight = (height-2)/tileSize;
+        this.mapWidth = gameEngine.getWorld().getMap().getMapWidth();
+        this.mapHeight = gameEngine.getWorld().getMap().getMapHeight();
+
+        this.setSize(width, height);
+        this.setPreferredSize(new Dimension(width, height));
+        this.currentView = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        this.CameraOffset = new MapLocation(0,0);
+
+        gameEngine.setMapView(this);
+        addMouseListener(this);
+        addKeyListener(this);
+        addMouseMotionListener(this);
+        this.setFocusable(true);
+    }
+
+    @Override
+    public void paintComponent(Graphics g)
+    {
+        g.drawImage(this.currentView, 0,0, this.getWidth(), this.getHeight(), this);
+    }
+
+    public void paintMap()
+    {
+        Graphics g = this.currentView.createGraphics();
+        g.setColor(Color.LIGHT_GRAY);
+        g.fillRect(0, 0, this.getWidth(), this.getHeight());
+
+        // Paint Terrain
+        for(int x = 0; x < this.viewTileWidth; x++)
+        {
+            for(int y = 0; y < viewTileHeight; y++)
+            {
+                BufferedImage sprite = gameEngine.getTerrainSprite(new MapLocation((this.CameraOffset.x+x)%this.mapWidth,this.CameraOffset.y+y));
+                g.drawImage(sprite, (x*tileSize)+1, (y*tileSize)+1, tileSize, tileSize, null);
+                if(path != null && path.contains(x, y)) {
+                    g.setColor(Color.BLUE);
+                    MapLocation init = getDrawOffset(new MapLocation(x, y));
+                    g.fillRect((init.x) * tileSize, (init.y) * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+
+        // Paint Cities
+        for(int x = 0; x < viewTileWidth; x++)
+        {
+            for(int y = 0; y < viewTileHeight; y++)
+            {
+                BufferedImage sprite = gameEngine.getCitySprite(new MapLocation((this.CameraOffset.x+x)%this.mapWidth,this.CameraOffset.y+y));
+                g.drawImage(sprite, (x*tileSize)+1, (y*tileSize)+1, tileSize, tileSize, null);
+            }
+        }
+        
+        // Paint Units
+        for(int x = 0; x < viewTileWidth; x++)
+        {
+            for(int y = 0; y < viewTileHeight; y++)
+            {
+                BufferedImage sprite = gameEngine.getUnitSprite(new MapLocation((this.CameraOffset.x+x)%this.mapWidth,this.CameraOffset.y+y));
+                g.drawImage(sprite, (x*tileSize)+1, (y*tileSize)+1, tileSize, tileSize, null);
+            }
+        }
+         
+        this.repaint();
+    }
+    
+
+
+
+    // This can be called as follows: if(input.isKeyDown(KeyEvent.VK_V)) --> Checks for v key being pressed
+    
+    // Handle all mouse and keyboard strokes.
+    // There will be if statements here to check for right mouse button/WASD events. 
+    public void moveCamera(MapLocation newCenter)
+    {
+        //Take the shy side of the size of the view as the center.
+        int curXCenter = this.CameraOffset.x + (this.viewTileWidth/2) + (this.viewTileWidth%2 -1);
+        int curYCenter = this.CameraOffset.y + (this.viewTileHeight/2) + (this.viewTileHeight%2 -1);
+
+        MapLocation nOffset = new MapLocation((this.CameraOffset.x + (newCenter.x - curXCenter)) % mapWidth, (this.CameraOffset.y + (newCenter.y - curYCenter)) % mapHeight);
+        if(nOffset.y < 0) nOffset.y = 0;
+        if(nOffset.y > this.mapHeight - (this.viewTileHeight)) nOffset.y = this.mapHeight - (this.viewTileHeight);
+        nOffset.x = (nOffset.x+this.mapWidth)%this.mapWidth;
+
+        this.CameraOffset = nOffset;
+        this.paintMap();
+        
+        
+        /*
+         * If the purposed center is not the same as the current one
+         *      if the x is not the same, we want to pan
+         *      so we simply move the cameraOffset by the difference in the appropriate way
+         *      if the y is different, we need to make sure that the new locations
+         *          center is not to close to the edge (we want the edge to always be flush with the north or south e
+         *          edge of the map
+         */
+    }
+
+    public void ShiftCamera(int x, int y)
+    {
+        int ncx = this.CameraOffset.x + (this.viewTileWidth/2) + (this.viewTileWidth%2 -1) + x;
+        int ncy = this.CameraOffset.y + (this.viewTileHeight/2) + (this.viewTileHeight%2 -1) + y;
+        this.moveCamera(new MapLocation(ncx, ncy));
+    }
+
+    //unitLocation is in the REFERENCE OF THE MAP, NOT THE VIEW!
+    public void highlight(BufferedImage highlight, MapLocation unitLocation){
+        Graphics g = this.currentView.createGraphics();
+        unitLocation = getDrawOffset(unitLocation);
+        
+        if(gameEngine.getCurrentlySelectedUnit() != null || gameEngine.getCurrentlySelectedCity() != null) {
+            g.drawImage(highlight, (unitLocation.x) * tileSize + 1, (unitLocation.y) * tileSize + 1, tileSize, tileSize, null);
+        } else {
+            drawTile(unitLocation);
+        }
+        this.repaint();
+    }
+    
+    public void reHighlight(){
+        MapLocation unitLocation = gameEngine.getCurrentlySelectedUnitTile();
+        MapLocation cityLocation = gameEngine.getCurrentlySelectedCityTile();
+        
+        if(unitLocation != null) gameEngine.findMapEntity(unitLocation);
+        if(cityLocation != null) highlight(gameEngine.getSpriteUtility().getHighlight(), cityLocation);
+    }
+    
+    public void drawMovedUnit(MapLocation previousLocation, MapLocation newLocation) {       
+        drawTile(previousLocation);
+        drawTile(newLocation);
+    }
+
+    //mapLocation here is in REFERENCE TO THE MAP, NOT THE VIEW!
+    public void drawTile(MapLocation mapLocation) {
+        
+        Graphics g = currentView.createGraphics();
+        MapLocation drawMapLocation = new MapLocation(mapLocation.x, mapLocation.y);
+        MapLocation mapViewLocation = getDrawOffset(mapLocation);
+         
+        // Is the tile within the visible bounds?
+        if((mapLocation.x <= CameraOffset.x + viewTileWidth || mapLocation.x >= CameraOffset.x) ||
+                (mapLocation.y <= CameraOffset.y + viewTileHeight || mapLocation.y >= CameraOffset.y)) 
+        {        
+            g.drawImage(gameEngine.getTerrainSprite(drawMapLocation), (mapViewLocation.x) * tileSize + 1, 
+                    (mapViewLocation.y) * tileSize + 1, tileSize, tileSize, null);
+            g.drawImage(gameEngine.getCitySprite(drawMapLocation), (mapViewLocation.x) * tileSize + 1, 
+                    (mapViewLocation.y) * tileSize, tileSize, tileSize, null);
+            g.drawImage(gameEngine.getUnitSprite(drawMapLocation), (mapViewLocation.x) * tileSize + 1, 
+                    (mapViewLocation.y) * tileSize + 1, tileSize, tileSize, null);
+            repaint();
+        }
+    }
+    
+    public MapLocation getDrawOffset(MapLocation mapLocation) {
+        MapLocation tempLocation = new MapLocation(mapLocation);
+        
+        tempLocation.x = (mapLocation.x - CameraOffset.x + mapWidth) % mapWidth;
+        tempLocation.y = (mapLocation.y - CameraOffset.y + mapHeight) % mapHeight;
+        
+        return tempLocation;
+    }
+    
+    // If left click
+    // Find coordinates and create MapLocation object
+    //end
+    
+    // If player pressed g on keyboard, call GameEngine
+    
+    // If another left click
+    // Throw that message at GE and use NavigationUtils to move the unit.
+    
+    // PAUL KNOWS WHAT TO DO HERE. I done goofed :(
+    
+    @Override
+    public void mouseClicked(MouseEvent click) 
+    {
+        int tileClickX = ((click.getX() / tileSize) + CameraOffset.x) % mapWidth;
+        int tileClickY = ((click.getY() / tileSize) + CameraOffset.y) % mapHeight;
+        
+        if(click.getButton() == MouseEvent.BUTTON1)
+        {
+            if (gameEngine.getCommand() == 'g') {
+                gameEngine.moveUnit(new MapLocation(tileClickX, tileClickY));
+                gameEngine.setCommand(' ');
+                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            } else {
+                gameEngine.findMapEntity(new MapLocation(tileClickX, tileClickY));
+            }
+        }
+        else if(click.getButton() == MouseEvent.BUTTON3)
+        {
+            this.moveCamera(new MapLocation(tileClickX, tileClickY));
+            reHighlight();
+        }
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        
+        
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+             
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+        
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_G) {
+            gameEngine.setCommand('g');
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        //Are we panning a map :D?
+        if (e.getKeyCode() == KeyEvent.VK_W)
+            this.ShiftCamera(0, -1);
+        else if(e.getKeyCode() == KeyEvent.VK_S)
+            this.ShiftCamera(0, 1);
+        else if(e.getKeyCode() == KeyEvent.VK_A)
+            this.ShiftCamera(-1, 0);
+        else if(e.getKeyCode() == KeyEvent.VK_D)
+            this.ShiftCamera(1, 0);
+        
+        reHighlight();   
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        int tileLocationX = ((e.getX() / tileSize) + CameraOffset.x) % mapWidth;
+        int tileLocationY = ((e.getY() / tileSize) + CameraOffset.y) % mapHeight;
+        
+        if(gameEngine.getCommand() == 'g') {
+            Unit currentUnit = gameEngine.getCurrentlySelectedUnit();
+            path = gameEngine.getNavigationUtils().findPath(currentUnit, currentUnit.getMapLocation(), new MapLocation(tileLocationX, tileLocationY));
+            paintMap();
+        }
+    }
+    
+    
+    
+}

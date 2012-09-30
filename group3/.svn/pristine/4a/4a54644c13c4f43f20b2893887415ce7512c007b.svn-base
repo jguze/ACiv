@@ -1,0 +1,761 @@
+package civ.engine;
+
+import civ.navigation.NavigationUtils;
+import civ.*;
+import civ.UI.MapView;
+import civ.enums.CityStyle;
+import civ.enums.UnitType;
+import civ.UI.CityView;
+import civ.UI.UnitSelectView;
+import civ.enums.TerrainType;
+import civ.navigation.Path;
+import civ.navigation.Path.Step;
+import civ.maps.MapInfoCollector;
+import civ.MapLocation;
+import civ.UI.ResearchView;
+import java.awt.image.BufferedImage;
+import civ.sprites.SpriteUtils;
+import java.awt.Cursor;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Random;
+import javax.swing.JOptionPane;
+
+//TODO: Does anyone else find it annoying to snap back to the captial after every turn? Should we instead save the last viewed place and move back to that?
+
+public class GameEngine implements Serializable {
+    
+    public static final boolean DEBUGCITY = false;
+    
+    private World world;
+    private UnitManager unitManager;
+    private TerrainManager terrainManager;
+    private Map maps;
+    
+    private transient CityManager cityManager;
+    private transient NavigationUtils navUtils;
+    private transient CombatManager combatManager;
+    private transient MapView mapView;
+    
+    private int turnCount = 0;
+    private int turnCycle = 0;
+    private int numberPlayers;
+    private Random randomGenerator = new Random();
+    
+    private Player currentPlayer;
+    private MapLocation[] spawnLocations;
+            
+    private Unit currentlySelectedUnit;
+    private City currentlySelectedCity;
+    private Player[] GPlayers = new Player[8];
+    
+    private char selectedAction; // Last selected action
+
+    //Getter for world (used by the mapView and miniMapView)
+    public World getWorld()
+    {
+        return world;
+    }
+
+    public Player getCurPlayer()
+    {
+        return currentPlayer;
+    }
+
+    public GameEngine(int NumberPlayers, String filepath, Player[] Players, Boolean defaultSpawnLocations)
+    {
+        try
+        {
+            GPlayers = Players;
+            numberPlayers = NumberPlayers;
+            world = World.createWorld(filepath);
+            unitManager = new UnitManager(world);
+            terrainManager = new TerrainManager(world);
+            cityManager = new CityManager(world, terrainManager);
+            maps = world.getMap();
+
+            if(defaultSpawnLocations == true){
+                ArrayList<MapLocation> spawns = MapInfoCollector.getSpawnLocations(filepath);
+                spawnLocations = new MapLocation[NumberPlayers];
+                //Go through the location and grab an appropraite number of random ones.
+                for(int i = 0; i < numberPlayers; i++)
+                {
+                    int index = randomGenerator.nextInt(spawns.size());
+                    spawnLocations[i] = spawns.get(index);
+                    spawns.remove(index);
+                }
+                for(int i = 0; i < numberPlayers; i++){
+                    currentPlayer = GPlayers[i];
+                    MapLocation mapLoc = spawnLocations[i];
+                    MapLocation mapLocX = new MapLocation(mapLoc.x+1,mapLoc.y);
+                    MapLocation mapLocY = new MapLocation(mapLoc.x,mapLoc.y+1);
+                    if(world.getTile(mapLocX).getTerrainType() == TerrainType.OCEAN) mapLocX = new MapLocation(mapLoc.x-1,mapLoc.y);
+                    if(world.getTile(mapLocY).getTerrainType() == TerrainType.OCEAN) mapLocY = new MapLocation(mapLoc.x,mapLoc.y-1);
+                    createCity("Capital", GPlayers[i].getBuildingStyle(), mapLoc);
+                    currentPlayer.setCapitallocation(mapLoc);
+                    createUnit(UnitType.WARRIORS, new MapLocation(mapLocX));
+                    createUnit(UnitType.SETTLERS, new MapLocation(mapLocY));
+                }
+            }
+            if(defaultSpawnLocations == false){
+                for(int i = 0; i < numberPlayers; i++){
+                    currentPlayer = GPlayers[i];
+                    MapLocation mapLoc = new MapLocation(randomGenerator.nextInt(maps.getMapWidth()-2),randomGenerator.nextInt(maps.getMapHeight()-2));
+                    MapLocation mapLocX = new MapLocation(mapLoc.x+1,mapLoc.y);
+                    MapLocation mapLocY = new MapLocation(mapLoc.x,mapLoc.y+1);
+
+                    while(world.getTile(mapLoc).getTerrainType() == TerrainType.OCEAN || world.getTile(mapLocX).getTerrainType() == TerrainType.OCEAN || world.getTile(mapLocY).getTerrainType() == TerrainType.OCEAN
+                            || isEnemyObstacle(mapLoc) == true || isEnemyObstacle(mapLocX) == true || isEnemyObstacle(mapLocY) == true){
+                        mapLoc = new MapLocation(randomGenerator.nextInt(maps.getMapWidth()-2),randomGenerator.nextInt(maps.getMapHeight()-2));
+                        mapLocX = new MapLocation(mapLoc.x+1,mapLoc.y);
+                        mapLocY = new MapLocation(mapLoc.x,mapLoc.y+1);
+                    }
+                    createCity("Capital", GPlayers[i].getBuildingStyle(), mapLoc);
+                    currentPlayer.setCapitallocation(mapLoc);
+                    createUnit(UnitType.WARRIORS, new MapLocation(mapLocX));
+                    createUnit(UnitType.SETTLERS, new MapLocation(mapLocY));
+                }
+            }
+            
+            //Justin's city testing
+            if (DEBUGCITY) {
+                createCity("Bobby", CityStyle.ASIAN, new MapLocation(world.getMap().getMapWidth() - 1, world.getMap().getMapHeight() - 1));
+                currentPlayer.setCapitallocation(new MapLocation(world.getMap().getMapWidth() - 1, world.getMap().getMapHeight() - 1));
+            }
+            currentPlayer = GPlayers[0];
+            
+            SpriteUtils.getInstance().setWorld(world);
+            navUtils = new NavigationUtils(world, terrainManager);
+            combatManager = new CombatManager(world, terrainManager);
+            selectedAction = ' ';
+            
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Creates a unit at a given mapLocation given a specific UnitType
+     * @param type The UnitType that is being created
+     * @param location The location at which the new unit will be added
+     */
+    public void createUnit(UnitType type, MapLocation location) {
+        Unit unit = unitManager.createUnit(type);
+        unit.setOwner(currentPlayer);
+        unit.setMapLocation(location);
+        addUnit(unit);
+    }
+    
+    /**
+     * Adds the unit to the game. It adds a unit to the currentPlayer, the world,
+     * and the city if it exists. Be careful not to call unitOnCity() multiple times.
+     * @param unit 
+     */
+    public void addUnit(Unit unit) {
+        world.addUnit(unit);
+        currentPlayer.getUnits().add(unit);
+        unitOnCity(unit);
+    }
+    
+    /**
+     * This method permanently removes a unit from the game.
+     * Removes a unit from the world, a city if it exists, and the unit's owner.
+     * @param unit The unit to be removed from the game
+     */
+    public void removeUnit(Unit unit) {
+        world.removeUnit(unit);
+        
+        //If the unit was on a city, remove it from that city as well.
+        if (isCity(unit.getMapLocation())) {
+            world.getCity(unit.getMapLocation()).removeUnit(unit);
+        }
+        unit.getOwner().getUnits().remove(unit);
+    }
+    
+    /**
+     * Creates a new City object that is then added to the game. It calls city manager
+     * to create a city with the player's CityStyle, a name, and at the MapLocation.
+     * @param name The name of the created city
+     * @param type The CityStyle of the city being created.
+     * @param mapLocation The location of the city being created.
+     */
+    public void createCity(String name, CityStyle type, MapLocation mapLocation) {
+        City city = cityManager.createCity(name, type, mapLocation);
+        city.setLevel(1);
+        city.setMapLocation(mapLocation);
+        city.setOwner(currentPlayer);
+        addCity(city);
+    }
+    
+    /**
+     * Adds a given city to the World and the current player.
+     * @param city The city to be added to the World and player
+     */
+    public void addCity(City city) {
+        world.addCity(city);
+        currentPlayer.addCity(city);
+    }
+    
+    public int getTurnCount(){
+        return turnCount;
+    }
+
+    /**
+     * Checks what entities are found at a given MapLocation, and processes the
+     * result based on it. The click is processed as follows:
+     * - If nothing is found, any selected unit or city is deselected since you 
+     *   clicked on empty space.
+     * - If there is a friendly city at that location, the City Menu will pop up
+     *   for that specific city.
+     * - If there is no city and there are friendly units at that location, it
+     *   will select the unit at that location or, if multiple units are stacked,
+     *   the unit select menu will pop up.
+     * @param click The MapLocation where the user clicked
+     */
+    public void findMapEntity(MapLocation click){
+        ArrayList<Unit> unitList = world.getUnitList(click);
+        City currentCity = world.getCity(click);
+        
+        if(currentlySelectedUnit != null) {
+            mapView.drawTile(currentlySelectedUnit.getMapLocation());
+        }
+        
+        if (currentlySelectedCity != null) {
+            mapView.drawTile(currentlySelectedCity.getMapLocation());
+        }
+        
+        if(currentCity != null && !isEnemyCity(click)){
+            currentlySelectedCity = currentCity;
+//            mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+            CityView CV = new CityView(currentlySelectedCity, this);
+            currentlySelectedCity = null;
+            
+        } else if (currentCity == null && !unitList.isEmpty() && !isEnemyUnit(click)){
+            if(unitList.size() > 1){
+                UnitSelectView USL = new UnitSelectView(unitList, this);
+                currentlySelectedUnit = unitList.get(USL.getIndexOfSelectedUnit());
+                mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+                currentlySelectedCity = null;
+            }
+            else{
+                currentlySelectedUnit = unitList.get(0);
+                mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+                currentlySelectedCity = null;
+            }
+        } else {
+            currentlySelectedUnit = null;
+            currentlySelectedCity = null;
+            mapView.highlight(SpriteUtils.getInstance().getHighlight(), click);
+        }
+           
+    }
+    
+    // Knows there is a selected unit and a command, now wait to determine what to do.
+    // TODO: This should take into account what commands are valid for what the
+    // current state of the engine is (selected unit, city etc)
+    public void setCommand(char key){
+        selectedAction = key;
+    }
+    
+    public char getCommand() {
+        return selectedAction;
+    }
+
+    /**
+     * Finds the shortest path from <code>currentlySelectedUnit</code>'s location to 
+     * <code>desiredLocation</code> and sets <code>currentlySelectedUnit</code>'s 
+     * movement queue accordingly.
+     * @param desiredLocation  The location that the unit wants to move to
+     */
+    public void setUnitDestination(MapLocation desiredLocation) {
+
+        if (currentlySelectedUnit == null){
+            return;
+        }
+           
+        MapLocation previousLocation = currentlySelectedUnit.getMapLocation();
+        
+        // If we're trying to move to our current location, deselect the current unit.
+        if(previousLocation.compare(desiredLocation)){
+            currentlySelectedUnit = null;
+            mapView.drawTile(desiredLocation);
+            return;
+        }
+   
+        
+        // Clear visited 2D array so that the pathfinding algorithm can find the shortest path.
+        world.getMap().clearVisited();
+        
+        // Get the shortest path from previousLocation to desiredLocation and set currentlySelectedUnit's movement queue accordingly.
+        Path moveList = navUtils.findPath(currentlySelectedUnit, previousLocation, desiredLocation);
+        currentlySelectedUnit.setMoveList(moveList);
+        updateUnitLocation(currentlySelectedUnit);
+        currentlySelectedUnit = null;
+    }
+    
+    
+    /**
+     * Checks if there is an enemy obstacle (City or Unit) at the given
+     * mapLocation
+     * @param mapLocation The mapLocation being checked
+     * @return true if there is an enemy obstacle, false otherwise
+     */
+    private boolean isEnemyObstacle(MapLocation mapLocation) {
+        if (isEnemyCity(mapLocation) || isEnemyUnit(mapLocation)) {
+            return true;
+        }   
+        return false;
+    }
+    
+    /**
+     * Determines if the units at a given MapLocation are enemies.
+     * @param mapLocation The mapLocation of the tile being checked
+     * @return true if the unit belongs to the currentPlayer, false otherwise.
+     */
+    private boolean isEnemyUnit(MapLocation mapLocation) {
+        ArrayList<Unit> units;
+        units = world.getUnitList(mapLocation);
+        if (units.isEmpty()) {
+            return false;
+        } else if (world.getUnitList(mapLocation).get(0).getOwner().equals(currentPlayer)) {
+            return false;
+        } else {
+            return true;
+        }
+   }     
+ 
+   /**
+    * Determines if a city at a given mapLocation is an enemy
+    * @param mapLocation The mapLocation of the tile being checked
+    * @return true if the city belongs to the currentPlayer, false otherwise or if there is no city
+    */
+   private boolean isEnemyCity(MapLocation mapLocation) {
+        City isCity = world.getCity(mapLocation);
+        if (isCity == null) {
+            return false;
+        } else if (isCity.getOwner().equals(currentPlayer)) {
+            return false;
+        } else {
+            return true;
+        }
+   }
+  
+    
+   public Unit getCurrentlySelectedUnit() {
+        return currentlySelectedUnit;
+   }
+   
+   public City getCurrentlySelectedCity() {
+       return currentlySelectedCity;
+   }
+    
+   public MapLocation getCurrentlySelectedUnitTile() {
+        if(currentlySelectedUnit == null) return null;
+        return currentlySelectedUnit.getMapLocation();
+   }
+   
+   public MapLocation getCurrentlySelectedCityTile() {
+        if(currentlySelectedCity == null) return null;
+        return currentlySelectedCity.getMapLocation();
+   }
+
+   public void setMapView(MapView mV) {
+        mapView = mV;
+   }
+   
+   public BufferedImage getTerrainSprite(MapLocation mapLocation) {
+       return SpriteUtils.getInstance().getTerrainSprite(mapLocation);
+   }
+   
+   public BufferedImage getUnitSprite(MapLocation mapLocation) {
+       return SpriteUtils.getInstance().getUnitSprite(mapLocation);
+   }
+   
+   public BufferedImage getUnitSprite(UnitType unitType) {
+       return SpriteUtils.getInstance().getUnitSprite(unitType);
+   }
+   
+   public BufferedImage getCitySprite(MapLocation mapLocation) {
+       return SpriteUtils.getInstance().getCitySprite(mapLocation);
+   }
+   
+   public NavigationUtils getNavigationUtils() {
+       return this.navUtils;
+   }
+
+   /**
+    * A method for handling all mouse click events.
+    * TODO: handleMouseClick() -> Optimize this. Just hacking things together to get an idea of how they work.
+    * @param e 
+    */
+    public void handleMouseClick(MouseEvent e) {
+        if (getCommand() == 'g') {
+            setUnitDestination(mapView.getMapLocation(e));
+            setCommand(' ');
+            mapView.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+
+            mapView.setPath(null);
+            mapView.paintMap();
+        } else {
+            findMapEntity(mapView.getMapLocation(e));
+        }
+    }
+
+    /**
+     * Handles the key presses we receive from map view
+     * @param e The KeyEvent being processed
+     */
+    public void handleKeyPress(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_G) {
+            // ready a unit for movement and display pathfinding
+            readyUnitForMovement();
+        } 
+        if (e.getKeyCode() == KeyEvent.VK_H){
+            // hold a unit's current position
+            holdUnitForMovement();
+        }
+        
+        //Null check on the currentlySelectedUnit. No more NPE if no unit was selected.
+        if (getCurrentlySelectedUnit() != null) {
+            if (e.getKeyCode() == KeyEvent.VK_B) {
+                // build city from a settler unit
+                createCityFromSettler();
+            }  
+        
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                
+                // Cancel selection and remove pathfinding.
+                currentlySelectedUnit = null;
+                setCommand(' ');
+                mapView.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                mapView.setPath(null);
+                mapView.paintMap();
+            }
+        }
+        
+        if (e.getKeyCode() == KeyEvent.VK_C) {
+            centerOnCity();
+        }
+        
+        if (e.getKeyCode() == KeyEvent.VK_V) {
+            viewResearchTree();
+        }
+    }
+
+    /**
+     * Creates the path and draws it to the mapView of the mouses current location
+     * @param e 
+     */
+    public void handleMouseMove(MouseEvent e) {    
+        if(getCommand() == 'g') {
+            mapView.setPath(getNavigationUtils().findPath(currentlySelectedUnit, currentlySelectedUnit.getMapLocation(), mapView.getMapLocation(e)));
+            mapView.paintMap();
+        }
+    }
+    
+    /**
+     * Centers the camera on the currentPlayer's capital city.
+     */
+    public void centerOnCity(){
+            MapLocation location = currentPlayer.getCapitalLocation();
+            mapView.centerCameraOn(location);
+    }
+    
+    /**
+     * Calls CombatManager when a unit tries to move to a location and an enemy unit
+     * is discovered.
+     * @param unit The unit whose location is being updated
+     */
+    private void updateUnitLocation(Unit unit) {
+        MapLocation desiredLocation = unit.getMapLocation();
+        
+        // Are we still allowed to move this turn?
+        int movementAvailable = unit.getMovementRange();
+        
+        // If we have a unit that doesn't have a movement path (ie. isn't moving, or set to move)
+        if(unit.getPath() == null || unit.getState() == Unit.State.MOVE_BLOCKED) {
+            return;
+        }
+        
+        // Movement occurs here
+        while(unit.getPath().getLength() != 0) {
+            unit.setState(Unit.State.MOVING);
+            
+            // Get the MapLocation corresponding to the next step in our movement queue
+            Step step = unit.getPath().getStep(0);
+            desiredLocation = new MapLocation(step.getX(), step.getY());
+            
+            int terrainCost = terrainManager.getTerrainInfo(desiredLocation).getMovementCost();
+            
+            if(unit.getMapLocation().compare(desiredLocation)) {
+            // If we're trying to move to the square we're already on, do nothing
+                unit.getPath().removeCurrentStep();
+                continue;
+            }
+            
+            // If we don't have enough remaining movement to move here this turn, don't move.
+            if(movementAvailable - terrainCost < 0 
+                    && !(movementAvailable == unit.getMovementRange() && movementAvailable < terrainCost))
+            {
+                break;  
+            }
+            
+            // Otherwise, remove the current step from our movement list, and move.
+            unit.getPath().removeCurrentStep();
+            
+            movementAvailable -= terrainCost;
+            
+            // Check for enemy units
+            if(isEnemyUnit(desiredLocation)) {
+                combatManager.collision(unit, desiredLocation);
+                if (world.getUnitList(desiredLocation).isEmpty()) {
+                    moveUnit(unit, desiredLocation);
+                }
+                
+                //Better way to draw a fight needed
+                mapView.paintMap();
+                
+                //Unit is dead bro
+                if (unit == null) {
+                    return;
+                }
+                
+            } else {
+                moveUnit(unit, desiredLocation);
+            }
+        }
+
+        // Game engine flags for drawing our unit decorations properly
+        if(movementAvailable <= 0)
+            unit.setState(Unit.State.MOVE_BLOCKED); // This will still have a "G" decoration, but it also signifies we can't move any more this turn.         
+    }
+    
+    /**
+     * Takes care of the logic of moving a unit from its current tile to the
+     * desiredLocation it wants to move. It removes the unit from it's
+     * location in the world and if it was in a city, and adds it to the new
+     * location in the world.
+     * @param unit The unit that is being moved
+     * @param desiredLocation The location the unit wants to be moved to.
+     */
+    private void moveUnit(Unit unit, MapLocation desiredLocation) {
+        world.removeUnit(unit);       
+        //If the unit was on a city, remove it from that city as well.
+        if (isCity(unit.getMapLocation())) {
+            world.getCity(unit.getMapLocation()).removeUnit(unit);
+        }
+        MapLocation previousLocation = new MapLocation(unit.getMapLocation());
+        unit.setMapLocation(desiredLocation);
+        world.addUnit(unit);
+        unitOnCity(unit);
+
+        mapView.drawMovedUnit(previousLocation, desiredLocation);    
+    }
+    
+    /**
+     * Loop through the current player's list of units and update their locations if necessary.
+     * @param currentPlayer The current player whose units are to be iterated over.
+     */
+    private void updateUnits(Player currentPlayer) {
+        if(!(currentPlayer.getUnits().isEmpty())) {
+            /*
+             * If you end up here with a weird error, then you're probably
+             * modifying the current player's unit list further down.
+            */
+            for(Unit unit : currentPlayer.getUnits()) {
+                if(unit.getPath() != null && unit.getPath().getLength() >= 1) {
+                    // Tell the engine that the current unit is moving (so that we can draw a nice G icon on it)
+                    unit.setState(Unit.State.MOVING);
+                } else {
+                    // Tell the engine the unit is no longer moving (remove all decorations on it)
+                    unit.setState(Unit.State.IDLE);
+                }
+                updateUnitLocation(unit);
+            }
+        }
+    }
+    
+    /**
+     * Creates a city from a settler unit.
+     */
+    public void createCityFromSettler() {
+        
+        // If we don't have a settler selected, you can't do this bro
+        if(!(getCurrentlySelectedUnit().getUnitType() == UnitType.SETTLERS))
+            return;
+       
+        // Promp the user for the new city's name        
+        String newCityName = JOptionPane.showInputDialog("Enter a new city name.", null);
+        if(newCityName != null) {
+            createCity(newCityName, currentPlayer.getBuildingStyle(), getCurrentlySelectedUnitTile());            
+            removeUnit(currentlySelectedUnit);
+            mapView.paintMap();
+        }
+    }
+    
+    /**
+     * Returns a basic unit object with a UnitType's information within. This is
+     * only used to determine the number of turns a unit will take so far.
+     * @param unitType The type of unit to get unit info about
+     * @return A Unit object with the specified UnitType's information.
+     */
+    public Unit getUnitInfo(UnitType unitType) {
+        return unitManager.getUnitInfo(unitType);
+    }
+
+    /**
+     * Prepares the currently selected unit for movement, if it exists. By prepare,
+     * it means it sets the current command to 'g'
+     */
+    public void readyUnitForMovement() {
+        if (getCurrentlySelectedUnit() == null) {
+            return;
+        }
+        setCommand('g');
+        mapView.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+    //after pressing 'h' key unit will no longer have queue
+    public void holdUnitForMovement() {
+        if (getCurrentlySelectedUnit() == null) {
+            return;
+        }
+        setCommand(' ');
+        getCurrentlySelectedUnit().setMoveList(null);
+        getCurrentlySelectedUnit().setState(Unit.State.IDLE);
+        mapView.paintMap();
+        mapView.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+    }      
+    /**
+     * TODO: We should think about putting all turn related things in one place
+     * Eventually this should be the place that cities increase their turn count,
+     * units update their movement queues, the turn number changes, etc.
+     */
+    public void nextTurn() {
+        turnCycle = turnCycle + 1;
+        if(turnCycle == numberPlayers){
+            turnCount = turnCount + 1;
+            turnCycle = 0;
+        }
+        currentPlayer = GPlayers[turnCycle];
+        updateUnits(currentPlayer);
+        updateResearchTree(currentPlayer);
+        centerOnCity();
+        
+        cityManager.nextTurn(currentPlayer);
+        //Create all the units queued up to be created this turn
+        for (UnitCreateObj obj : currentPlayer.getUnitCreateQueue()) {
+            createUnit(obj.getUnitType(), obj.getLocation());
+        }
+        currentPlayer.getUnitCreateQueue().clear();
+    }
+
+    /**
+     * If a unit is on a city, it will add the unit to the cities list of units.
+     * If a unit moves onto an opposing player's city and the city has no units,
+     * the city belongs to the unit's player.
+     * @param unit The Unit that is on the tile that may have a city
+     */
+    private void unitOnCity(Unit unit) {
+        City city = world.getCity(unit.getMapLocation());
+        
+        if (city == null) {
+            return;
+        }
+        
+        if (!city.getOwner().equals(unit.getOwner())) {
+            //A unit goes onto an unoccupied enemy city, then gains the city
+            city.getOwner().getCities().remove(city);
+            city.setOwner(unit.getOwner());
+            unit.getOwner().addCity(city);
+            
+        }
+        
+        city.addUnit(unit);
+        
+    }
+
+    /**
+     * Determines the existence of a city at a given MapLocation
+     * @param mapLocation The given MapLocation to check for a city
+     * @return true if a city exists, false otherwise
+     */
+    public boolean isCity(MapLocation mapLocation) {
+        if (world.getCity(mapLocation) == null) {
+            return false;
+        }
+        return true;
+    }
+
+    public void setCurrentlySelectedUnit(Unit currentlySelectedUnit) {
+        this.currentlySelectedUnit = currentlySelectedUnit;
+    }
+
+    /**
+     * Saves the current state of the game to a file.
+     * @param save The SaveObject to be saved to a file.
+     */
+    public void save(SaveObject save) {       
+        if (!SaveModule.getInstance().save(save)) {
+            JOptionPane.showMessageDialog(mapView, "Could not save game");
+        } else {
+            JOptionPane.showMessageDialog(mapView, "Saved game");
+        }
+    }
+
+    /**
+     * All transient variables that weren't saved to a file during a save
+     * are re-instantiated here.
+     */
+    public void instantiateUnsavedObjects() {
+        navUtils = new NavigationUtils(world, terrainManager); 
+        cityManager = new CityManager(world, terrainManager);
+        combatManager = new CombatManager(world, terrainManager);
+        SpriteUtils.getInstance().setWorld(world);
+        //TODO: Paul - Kill this. We don't want engines in our drawings
+        SpriteUtils.getInstance().setEngine(this);
+    }
+
+    /**
+     * Loads a SaveObject from the specified filename. Used to reload a 
+     * previous game.
+     * @param filename The filename to the specified save file.
+     * @return A SaveObject containing the state of the saved game.
+     */
+    public SaveObject load(String filename) {
+        return SaveModule.getInstance().load(filename);
+    }
+    
+    /**
+     * Draws the unit on top of everything else on that tile
+     * @param unit to be drawn
+     */
+    public void drawUnit(Unit unit) {
+        mapView.drawUnit(unit);
+    }
+
+    /**
+    * Disables the CivFrame from input
+    */
+    public void disableCivFrame() {
+        mapView.getParent().getParent().getParent().getParent().setEnabled(false);
+    }
+    
+    /**
+     * Enables the CivFrame for input again.
+     */
+    public void enableCivFrame() {
+        mapView.getParent().getParent().getParent().getParent().setEnabled(true);
+    }
+
+    public void viewResearchTree() {
+        ResearchView view = new ResearchView(currentPlayer, this);
+    }
+
+    private void updateResearchTree(Player currentPlayer) {
+        currentPlayer.getResearchTree().nextTurn();
+    }
+}

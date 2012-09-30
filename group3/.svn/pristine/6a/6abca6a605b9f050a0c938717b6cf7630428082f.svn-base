@@ -1,0 +1,106 @@
+Help Document:
+  
+  Below you will find several helpful hints and descriptions of how certain elements of the game work.
+  
+    1) Building Cities
+      This is done by creating a settler and then pressing the "b" button. This will open a dialog box that
+      asks for a name. Note that a city may not be created if the unit has already moved in a turn.
+      Instead of using the "b" button you may also go into the commands menu and select Build City.
+      
+    2) Creating Units
+      This is done by first clicking on a city. This will open the City Control area. Then look in the 
+      production area and use the drop down list to select the unit you would like to produce. 
+      Information regarding how long until the unit is created is then displayed in the area above. 
+      To shorten this wait time you may opt to reduce the wait to 1 turn by buying the unit with gold.
+      Different units can be created by unlocking them with research.
+      
+    3) Moving Units
+      This is done by first selecting a unit. You must then push the "g" button to enable the 
+      pathfinding. To set a path for your unit you simply click on it's destination. Note that your unit 
+      may not move the whole distance in one turn. If not he will have a little G above his head signifying
+      that he is still moving. You may then cancel movement paths by selecting the unit and pressing 
+      the "h" button (Both these commands can be found in the commands menu).
+      
+    4) Moving the Map
+      The map can be moved in several ways. One way is to use the "wasd" keys and the other is to 
+      right click anywhere on the map to center the camera on that location. You may also use 
+      the "c" button or the center on capital action in the commands menu to move the map to 
+      your starting city.
+      
+    5) Ending Your Turn
+      Simply push the turn done button on the side of the screen to pass to the next player's turn.
+      
+    6) Setting Your Research
+      This can be done by going into the research menu and selecting View research Tree. This will
+      bring up the current players research tree. All the research boxes that you have completed will 
+      be highlighted with blue while the one you are currently producing will be highlighted in yellow.
+      You can select a new research to partake in by selecting another non gray box that has no 
+      highlighting and then selecting done.
+      
+    7) Player Information
+      Player information such as the number of units and cities a player has can be seen below the 
+      minimap.
+      
+    8) Tile information
+      Hovering over a tile with your mouse causes a information strip to appear below the main map. 
+      This information strip contains information such as the resources you could get from it 
+      aswell as its combat modifier.
+      
+    9) Combat
+      To engage in combat you simply move your unit onto a tile occupied by an enemy unit or city. 
+      Combat is then engaged and in every combat a unit dies. Note that specific tiles give bonuses 
+      to units that are on the defense and when attacking multiple enemy units their best unit is used 
+      and then their second best and so on. Attacking a city is no different if it has enemy units 
+      within it, however if there are no more enemy units within it then the city is either destroyed or 
+      taken over.
+      
+    10) Winning the Game
+      This is done by destroying every enemy city.
+      
+    11) Selecting a unit within a city
+      This si done by opening the city options panel and using the drop down menu in the city's units 
+      area to select a unit. By clciking done the city option panel is closed and that unit is now 
+      under your control. He may be moved as normal.
+      
+    12) City Information
+      This can be found in the city options panel and includes information such as your current 
+      resource values for the city.
+      
+    13) Resources
+      Resources are collected by cities from tiles that are close to that city. As your city 
+      grows it is able to collect from more tiles allowing it to grow and produce units faster. Certain 
+      tiles offer different amount of resources and because of this you are able to set priorities on 
+      which resources you want to collect. This can be done in the city options panel by moving the 
+      sliders accordingly (0 meaning you dont what the resource and 9 being you want that one the 
+      most). Note that when a city starts out it is likely that no affect will take place as the 
+      best tile is always chosen.
+      
+    14) Science
+      This resource is used to increase the rate at which you research.
+      
+    15) Food
+      This resource is used to increase the rate at which your city levels up.
+      
+    16) Production
+      This resource increases the rate at which your units are produced in that city.
+      
+    17) Gold
+      This is colected each turn and the rate of which it is collected is in relation to how many cities 
+      you have and what level they are. It can be used to reduce the time taken to produce a unit.
+      
+    18) Boarding a Transport
+      Certain units are able to be used as transports. To move a unit into it you simply move the unit to 
+      be transported onto the same tile as the transport. Note that you cannot pick up units by moving 
+      the transport onto the tile a unti si on. The unit is now in the transport and will be in it until 
+      removed or the transport is killed (the units inside are also killed).
+      
+    19) Exiting a Transport
+      This can be done by first clicking on a transport that contains units. This will open a unit 
+      selection box that you can then select the unit you wish to disembark. Once you have done this 
+      that unit is now under your control and you may move the unit out of the transport as normal.
+      
+    20) Unlockables
+      Here is a helpful cheat code to increase your odds of wining: 
+                    "up up down down left right left right B A".
+      This will unlock several powerful units that represent the 6 makers of this game along with the 
+      teacher of their class (being the most powerful).

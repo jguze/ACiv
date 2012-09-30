@@ -1,0 +1,64 @@
+/*
+ * Handles combat between units when a collision is detected by the game engine
+ */
+
+package civ.engine;
+
+import civ.MapLocation;
+import civ.Unit;
+import civ.World;
+import java.util.ArrayList;
+
+public class CombatManager { 
+    
+    private World world;
+    private ArrayList<Unit> instantUnits2;
+    private ArrayList<Unit> instantUnits1;
+    
+    
+    public CombatManager(World world){
+        this.world = world;
+    }
+    
+    public void collision(Unit selectedUnit, MapLocation enemyUnitLocation, MapLocation previousLocation) {
+        int attack1,health1,armor1;
+        int attack2,health2,armor2;
+        int dmg;
+        
+        attack1 = selectedUnit.getBaseAttack();
+        armor1 = selectedUnit.getBaseArmor();
+        health1 = selectedUnit.getHealth();
+        
+        instantUnits2 = world.getUnitList(enemyUnitLocation);
+        attack2 = instantUnits2.get(0).getBaseAttack();
+        armor2 = instantUnits2.get(0).getBaseArmor();
+        health2 = instantUnits2.get(0).getHealth();
+        
+        dmg = armor2 - attack1;
+        health2 = newHealth(dmg, health2);  
+        if(health2>0){        
+            instantUnits2.get(0).setHealth(health2);
+            dmg = armor1 - attack2; 
+            health1 = newHealth(dmg, health1);
+            if(health1<=0){
+                world.getUnitList(selectedUnit.getMapLocation()).remove(selectedUnit);
+            }
+            else{
+                selectedUnit.setMapLocation(previousLocation);
+                selectedUnit.setHealth(health1);
+            }
+        }
+        else{
+            instantUnits2.remove(0);
+        }
+        
+    } 
+    private int newHealth(int dmg, int health){
+        if(dmg<=0){
+            health --;
+        } else{
+            health = health - dmg;
+        }
+        return health;
+    }
+}

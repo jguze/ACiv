@@ -1,0 +1,69 @@
+package civ;
+
+import civ.UI.MiniMapView;
+import civ.engine.GameEngine;
+import java.io.*;
+import civ.SaveObject;
+/**
+ * A class to save the current gameEngine object to a file and
+ * to load an existing gameEngine to a file.
+ * @author Justin
+ */
+public class SaveModule {
+    private static SaveModule saveModule;
+    private static final boolean DEBUG = true;
+    
+    /**
+     * Private constructor for Singleton
+     */
+    private SaveModule() {
+        
+    }
+    
+    public static SaveModule getInstance() {
+        if (saveModule == null) {
+            saveModule = new SaveModule();
+        }
+        
+        return saveModule;
+    }
+    
+    /**
+     * Saves any game objects to a file
+     * @param saveObj The saveObject to save to the file
+     * @return a boolean that determines whether the save was successful or not
+     */
+    public boolean save(SaveObject saveObj) {
+        try {
+            FileOutputStream saveFile = new FileOutputStream("saveFiles/save.justinisawesome");
+            ObjectOutputStream save = new ObjectOutputStream(saveFile);
+            save.writeObject(saveObj);
+            save.close();
+        } catch (IOException ioe) {
+            if (DEBUG) {
+                ioe.printStackTrace();
+            }
+            return false;
+        }
+        return true;
+    }
+    
+    /**
+     * Loads game objects from a file
+     * @param filename a string representing the name of a file
+     * @return the SaveObject to load
+     */
+    public SaveObject load(String filename) {
+        ObjectInputStream load = null;
+        try {
+            FileInputStream loadFile = new FileInputStream(filename);
+            load = new ObjectInputStream(loadFile);
+            return (SaveObject) load.readObject();
+        } catch (ClassNotFoundException ex) {
+            System.out.println("Nothing to load");
+        } catch (IOException ex) {
+            System.out.println("Could not load file");
+        }        
+        return null;
+    }
+}

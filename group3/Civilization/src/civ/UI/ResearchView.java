@@ -1,0 +1,120 @@
+package civ.UI;
+
+import civ.Player;
+import civ.engine.GameEngine;
+import civ.engine.WindowHandler;
+import civ.engine.WindowUtils;
+import civ.research.ButtonNode;
+import civ.research.ResearchTree;
+import civ.research.TreeNode;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
+
+public class ResearchView extends JFrame 
+                  implements ActionListener {
+    
+    private Container cp;
+    private GameEngine gameEngine;
+    private ResearchTree researchTree;
+    private ArrayList <ButtonNode> buttons;
+    private JButton doneButton;
+    
+    /**
+     * Creates our research tree view
+     * @param currentPlayer the current player
+     * @param gE the GameEngine object
+     */
+    public ResearchView(Player currentPlayer, GameEngine gE) {
+        super(currentPlayer.getName() + "'s Research Tree");
+        gameEngine = gE;
+        WindowUtils.centerOnFrame(this, new Dimension(615,615), (CivFrame) gameEngine.getCivFrame());
+        researchTree = currentPlayer.getResearchTree();
+        this.buttons = researchTree.buttons;
+        
+        
+        this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        
+        cp = getContentPane();
+        cp.setLayout(null);
+        cp.setPreferredSize(new Dimension(615, 615));
+        
+        doneButton = new JButton("Done");
+        doneButton.setBounds(495, 575, 75, 25);
+        cp.add(doneButton);
+        doneButton.addActionListener(this);
+        
+        // add all of the button nodes to the screen and hook up listeners
+        for(ButtonNode b : buttons) {
+            cp.add(b);
+            b.addActionListener(this);
+        }
+        
+        // Add backgound image
+        try{
+            BufferedImage myPicture = ImageIO.read(new File("resources/images/tree_bg.png")); 
+            JLabel picLabel = new JLabel(new ImageIcon( myPicture ));
+            picLabel.setBounds(0, 0, 625, 625);
+            cp.add(picLabel);
+        } catch (IOException e){
+//            e.printStackTrace();
+        }   
+        
+        /* Reset highlight to ensure currently active research node has an orange
+         * border and that any completed research nodes have a blue border
+         */
+        resetButtonHighlight();
+        
+        // GUI stuff that needs to be done
+        this.setVisible(true);
+        this.setResizable(false);
+        this.pack();
+        this.addWindowListener(new WindowHandler(gameEngine));        
+    }
+
+    /**
+     * Uses the command pattern to select a new resource to be researched and draws the border around the node
+     * accordingly.
+     * @param e the event thrown when a button node is clicked
+     */
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if(e.getSource().equals(doneButton)) {
+            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+            return;
+        }
+        ButtonNode node = (ButtonNode)e.getSource();
+        node.setBorder(new LineBorder(Color.ORANGE, 2));
+        researchTree.active = node.treeNode;
+        resetButtonHighlight();
+    }
+    
+    /**
+     * Ensures borders are drawn correctly (orange for active node, and blue for completed nodes)
+     * Also handles the enabling of newly researched nodes
+     */
+    private void resetButtonHighlight() {
+        for(ButtonNode node : buttons) {
+            if(researchTree.active.equals(node.treeNode))
+                node.setBorder(new LineBorder(Color.ORANGE, 2));
+            else if(node.treeNode.isResearched())
+                node.setBorder(new LineBorder(Color.BLUE, 2));
+            else
+                node.setBorder(null);
+            
+            // Have we researched something new? Update the button state here
+            if(node.treeNode.isAvailable()) {
+                node.setEnabled(true);
+            }
+        }
+    }
+}

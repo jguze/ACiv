@@ -1,0 +1,242 @@
+//The SpriteUtils is responsible for providing the correct sprite for a world object
+//such as a unit or a city. It takes into consideration such things as city rank,
+//and the terrain around a tile of terrain.
+
+package civ.sprites;
+
+import civ.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import civ.enums.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import java.awt.Color;
+
+public class SpriteUtils {
+    private HashMap<TerrainType, Color> miniMapColorPalette;
+    private HashMap<String, BufferedImage> terrainMap;
+    private HashMap<String, BufferedImage> cityMap;
+    private HashMap<TerrainBonusType, BufferedImage> terrainBonusMap;
+    private HashMap<UnitType, BufferedImage> unitMap; 
+    private BufferedImage highlight;
+    private World world;
+    private static final int TILEWIDTH = 30;
+    private static final int TILEHEIGHT = 30;
+    
+    BufferedReader reader;
+    
+    public SpriteUtils(World world) throws IOException {
+        this.world = world;
+        loadTerrainAndBonus();
+        loadCities();
+        loadUnits();
+        loadHighlight();
+        loadMiniMapPalette();
+    }
+
+    public int getTileSize()
+    {
+        return TILEWIDTH;
+    }
+
+    //Load the HashMap of colors using the spec file.
+    private void loadMiniMapPalette()
+    {
+        miniMapColorPalette = new HashMap<TerrainType, Color>();
+        Color colorSet;
+        try
+        {
+            BufferedReader freader = new BufferedReader(new FileReader(new File("resources/sprites/miniMapPalette.spec")));
+            String line;
+            String [] values;
+            freader.readLine();
+            while((line = freader.readLine()) != null)
+            {
+                values = line.split(" ");
+                colorSet = new Color(Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[1]));
+                miniMapColorPalette.put(TerrainType.valueOf(values[0]), colorSet);
+            }
+        }
+        catch (IOException ex)
+        {
+            Logger.getLogger("Error instantiating mini map color palette");
+        }
+    }
+
+    private void loadTerrainAndBonus() throws IOException {
+       BufferedImage buffedIm = null;
+        try {
+            buffedIm = ImageIO.read(new File("resources/sprites/tiles.png"));
+        } catch (IOException ex) {
+            Logger.getLogger("Error loading tile images. Exiting");
+            throw ex;
+        }
+        
+        loadTerrain(buffedIm);
+        loadTerrainBonus(buffedIm);
+        
+    }
+    
+    private void loadTerrain(BufferedImage buffedIm) throws IOException {
+        terrainMap = new HashMap<String, BufferedImage>();
+        reader = new BufferedReader(new FileReader(new File("resources/sprites/tiles_terrain.sprites")));
+        String line;
+        String[] values;
+        reader.readLine();
+        while((line = reader.readLine()) != null) {
+            values = line.split(" ");
+            terrainMap.put(values[0], buffedIm.getSubimage(Integer.parseInt(values[1].trim()) * TILEWIDTH, Integer.parseInt(values[2].trim()) * TILEHEIGHT, TILEWIDTH, TILEWIDTH));
+        }
+    }
+
+    private void loadCities() throws IOException {
+        BufferedImage buffedIm = null;
+        cityMap = new HashMap<String, BufferedImage>();
+
+        try {
+            buffedIm = ImageIO.read(new File("resources/sprites/cities.png"));
+        } catch (IOException ex) {
+            Logger.getLogger("Error loading tile images. Exiting");
+            throw ex;
+        }
+        
+        reader = new BufferedReader(new FileReader(new File("resources/sprites/cities.sprites")));
+        String line;
+        String[] values;
+        reader.readLine();
+        while((line = reader.readLine()) != null) {
+            values = line.split(" ");
+            cityMap.put(values[0], buffedIm.getSubimage(Integer.parseInt(values[1].trim()) * TILEWIDTH, Integer.parseInt(values[2].trim()) * TILEHEIGHT, TILEWIDTH, TILEWIDTH));
+        }    
+    }
+    
+    private void loadTerrainBonus(BufferedImage buffedIm) throws IOException {
+        terrainBonusMap = new HashMap<TerrainBonusType, BufferedImage>();
+        reader = new BufferedReader(new FileReader(new File("resources/sprites/tiles_terrainBonus.sprites")));
+        String line;
+        String[] values;
+        reader.readLine();
+        while((line = reader.readLine()) != null) {
+            values = line.split(" ");
+            terrainBonusMap.put(TerrainBonusType.valueOf(values[0]), buffedIm.getSubimage(Integer.parseInt(values[1].trim()) * TILEWIDTH, Integer.parseInt(values[2].trim()) * TILEHEIGHT, TILEWIDTH, TILEWIDTH));
+        }
+    }
+    
+    private void loadUnits()throws IOException {
+        BufferedImage buffedIm = null;
+        reader = null;
+        unitMap = new HashMap<UnitType, BufferedImage>();
+        
+        try {
+            buffedIm = ImageIO.read(new File("resources/sprites/units.png"));
+            reader = new BufferedReader(new FileReader(new File("resources/sprites/units.sprites")));
+
+        } catch (IOException ex) {
+            Logger.getLogger("Error loading unit images or spec file. Exiting");
+            throw ex;
+        }
+        
+        String line;
+        String[] values;
+        reader.readLine();
+        while((line = reader.readLine()) != null) {
+            values = line.split(" ");
+            unitMap.put(UnitType.valueOf(values[0]), buffedIm.getSubimage(Integer.parseInt(values[1].trim()) * TILEWIDTH, Integer.parseInt(values[2].trim()) * TILEHEIGHT, TILEWIDTH, TILEWIDTH));
+        } 
+    }
+
+    //Tries to retrieve the appropriate sprite given a set of
+    //coords as a map location, if it can't find it, the method
+    //will return null;
+     public BufferedImage getTerrainSprite(MapLocation coords) 
+     {
+         try
+         {
+            //Get the tile that we want to look around for ease of use later.
+            Tile tile = world.getTile(coords);
+            TerrainType tileType = tile.getTerrainType();
+            //IF the tile is grass, then we dont care whats around, it we just
+            //return the grass sprite, otherwise we need to look.
+            if(tile.getTerrainType() == TerrainType.GRASSLAND)
+                return this.terrainMap.get("GRASSLAND");
+            int y = coords.y;
+            int x = coords.x;
+            int my = world.getMap().getMapHeight();
+            int mx = world.getMap().getMapWidth();
+            //get the base key for the sprite, ex "DESERT"
+            String key = tile.getTerrainType().toString();
+            //Check whats around the tile :D
+            boolean north = (y>0?world.getTile(x,y-1).getTerrainType()==tileType:true);
+            boolean east = (world.getTile(x+1>mx-1?(x+1)-mx:x+1,y).getTerrainType()==tileType);
+            boolean south = (y<my-1?world.getTile(x,y+1).getTerrainType()==tileType:true);
+            boolean west = (world.getTile(x-1<0?(x-1)+mx:x-1,y).getTerrainType()==tileType);
+            //if the terrain is a hill, mountain or forest, we only care what
+            //is east and west of it (we dont have sprites for N and S)
+            if(tileType == TerrainType.HILLS || tileType == TerrainType.MOUNTAINS || tileType == TerrainType.FOREST)
+                north = south = false;
+            //Append the appropriate key to the type of it has surrounding types
+            if(north||east||south||west)
+                key += "_"+(north?"N":"")+(east?"E":"")+(south?"S":"")+(west?"W":"");
+            //Return the sprite.
+            return this.terrainMap.get(key);
+         }
+         catch (Exception e)
+         {
+            return null;
+         }
+     }  
+     
+     private void loadHighlight() {
+         try {
+             highlight = ImageIO.read(new File("resources/sprites/highlight.png"));
+         } catch (Exception e) {
+             Logger.getLogger("Invalid highlight image");
+         }
+     }
+     
+     public BufferedImage getHighlight() {
+         return highlight;
+     }
+     
+     // Gets the topmost unit in the array and that location, or null if empty
+     public BufferedImage getUnitSprite(MapLocation mapLocation) {
+         ArrayList<Unit> units = world.getUnitList(mapLocation);
+         if (units.isEmpty()) {
+             return null;
+         }
+         return unitMap.get(units.get(0).getUnitType());
+     }
+     
+     //Gets the appropriate city sprite based on the city level or null if no city at that location
+     public BufferedImage getCitySprite(MapLocation mapLocation) {
+         City city = world.getCity(mapLocation);
+         if (city == null) {
+             return null;
+        }
+         
+        return cityMap.get(city.getStyle().toString() + "_" + city.getLevel());
+     }
+     
+     public HashMap<String, BufferedImage> getTerrainMap() {
+         return terrainMap;
+     }
+     
+     public HashMap<String, BufferedImage> getCityMap() {
+         return cityMap;
+     }
+      
+     public HashMap<TerrainBonusType, BufferedImage> getTerrainBonusMap() {
+         return terrainBonusMap;
+     }
+     public HashMap<UnitType, BufferedImage> getUnitMap() {
+         return unitMap;
+     }
+   
+}

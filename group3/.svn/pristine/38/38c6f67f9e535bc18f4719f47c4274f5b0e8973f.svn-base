@@ -1,0 +1,246 @@
+package civ.UI;
+
+import civ.Player;
+import civ.engine.GameEngine;
+import civ.enums.AvailableMaps;
+import civ.enums.CityStyle;
+import civ.enums.UnitType;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import sun.audio.*;
+
+/*
+ * Mark's, no touchy.
+ */
+
+public class SplashView extends JFrame implements ActionListener{
+    
+    JButton newGame, loadGame, startGame;
+    
+    JFrame newFrame = new JFrame("New Window");
+    JPanel BackPanel = new JPanel();
+    JPanel BottomPanel = new JPanel();
+    JComboBox amountofplayers, selectingTheMap;
+    JComboBox[] playerRaces = new JComboBox[8];
+    JLabel SelectNum, SelectMap, SelectRace;
+    JLabel[] playerLabels = new JLabel[8];
+    Player[] PlayerData = new Player[8];
+
+    private int numberofplayers;
+    private String[] selectNum = new String[8];
+    
+    private String mapFile = "resources/maps/";
+    
+    private GameEngine civEngine; 
+    private Container cp = getContentPane();
+    
+    public SplashView(){
+        super("ACiv Setup");
+        
+        for(int i = 0; i < 8; i++){
+            selectNum[i] = (Integer.toString(i+1));
+        }
+
+        cp.setLayout(createLayout());
+        cp.setBackground(Color.BLACK);
+        
+        GridBagConstraints c = new GridBagConstraints();
+        
+        BackPanel.setBackground(Color.DARK_GRAY);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        cp.add(BackPanel, c);
+        
+        BottomPanel.setBackground(Color.DARK_GRAY);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        cp.add(BottomPanel, c);
+        
+        try{
+            BufferedImage myPicture = ImageIO.read(new File("src/civ/UI/pic for Splash.jpg")); 
+            JLabel picLabel = new JLabel(new ImageIcon( myPicture ));
+            BackPanel.add(picLabel);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+        
+        newGame = new JButton("New Game");
+        newGame.setBackground(Color.LIGHT_GRAY);
+        newGame.setForeground(Color.BLACK);
+        newGame.addActionListener(this);
+        
+        loadGame = new JButton("Load Game");
+        loadGame.setBackground(Color.LIGHT_GRAY);
+        loadGame.setForeground(Color.BLACK);
+        loadGame.addActionListener(this);
+        
+        BottomPanel.add(newGame);
+        BottomPanel.add(loadGame);
+        
+        this.setSize(850, 600);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == newGame) {
+            BottomPanel.remove(newGame);
+            BottomPanel.remove(loadGame);
+            
+            SelectNum = new JLabel("Select Number Of Players");
+            SelectNum.setForeground(Color.WHITE);
+            BottomPanel.add(SelectNum);
+            
+            amountofplayers = new JComboBox(selectNum);
+            amountofplayers.setVisible(true);
+            amountofplayers.addActionListener(this);
+            BottomPanel.add(amountofplayers);
+            
+            validate();
+            repaint();
+        }
+        
+        if (e.getSource() == amountofplayers){
+            JComboBox a = (JComboBox)e.getSource();
+            numberofplayers = Integer.parseInt(a.getSelectedItem().toString());
+            
+            BottomPanel.remove(SelectNum);
+            BottomPanel.remove(amountofplayers);
+            
+            SelectMap = new JLabel("Select Map to Use");
+            SelectMap.setForeground(Color.WHITE);
+            BottomPanel.add(SelectMap);
+            
+            selectingTheMap = new JComboBox(AvailableMaps.values());
+            selectingTheMap.setVisible(true);
+            selectingTheMap.addActionListener(this);
+            BottomPanel.add(selectingTheMap);
+            
+            validate();
+            repaint();
+        }
+        
+        if (e.getSource() == selectingTheMap){
+            JComboBox a = (JComboBox)e.getSource();
+            mapFile = mapFile + a.getSelectedItem().toString() + ".map";
+            
+            
+            BackPanel.removeAll();
+            BottomPanel.removeAll();
+            cp.removeAll();
+            cp.setLayout(createLayout());
+            GridBagConstraints c = new GridBagConstraints();
+            
+            BackPanel.setPreferredSize(new Dimension(795, 507));
+            c.gridx = 0;
+            c.gridy = 0;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            cp.add(BackPanel, c);
+            
+            BottomPanel.setPreferredSize(new Dimension(45, 93));
+            c.gridy = 1;
+            cp.add(BottomPanel, c);
+            
+            startGame = new JButton("Start Game");
+            startGame.setBackground(Color.LIGHT_GRAY);
+            startGame.setForeground(Color.BLACK);
+            startGame.addActionListener(this);
+            BottomPanel.add(startGame);
+            
+            BackPanel.setLayout(RaceSelectLayout());
+            c.gridy = 0;
+            SelectRace = new JLabel("Select Race for Each Player");
+            SelectRace.setForeground(Color.WHITE);
+            BackPanel.add(SelectRace, c);
+
+            for(int i = 0; i < numberofplayers; i++){
+                playerLabels[i] = new JLabel("Player" + (Integer.toString(i+1)));
+                playerLabels[i].setForeground(Color.WHITE);
+                playerRaces[i] = new JComboBox(CityStyle.values());
+                playerRaces[i].setVisible(true);
+                playerRaces[i].setSelectedItem(CityStyle.EUROPEAN);
+                playerRaces[i].addActionListener(this);
+                c.gridy = i+1;
+                c.gridx = 0;
+                BackPanel.add(playerLabels[i], c);
+                c.gridx = 1;
+                BackPanel.add(playerRaces[i], c);
+            }
+            
+            
+            validate();
+            repaint();
+        }
+        
+        if (e.getSource() == startGame){
+            for(int i = 0; i < numberofplayers; i++){
+                PlayerData[i] = new Player();
+            }
+            for(int i = 0; i < numberofplayers; i++){
+                String temp = playerRaces[i].getSelectedItem().toString();
+                if (temp.equals("ASIAN")) PlayerData[i].setBuildingStyle(CityStyle.ASIAN);
+                if (temp.equals("EUROPEAN")) PlayerData[i].setBuildingStyle(CityStyle.EUROPEAN);
+                if (temp.equals("CLASSICAL")) PlayerData[i].setBuildingStyle(CityStyle.CLASSICAL);
+                if (temp.equals("INDUSTRIAL")) PlayerData[i].setBuildingStyle(CityStyle.INDUSTRIAL);
+                if (temp.equals("MODERN")) PlayerData[i].setBuildingStyle(CityStyle.MODERN);
+                if (temp.equals("POSTMODERN")) PlayerData[i].setBuildingStyle(CityStyle.POSTMODERN);
+                if (temp.equals("TROPICAL")) PlayerData[i].setBuildingStyle(CityStyle.TROPICAL);
+            }
+            
+            civEngine = new GameEngine(numberofplayers, mapFile, PlayerData);
+            this.setVisible(false);
+            this.dispose();
+            CivFrame civ = new CivFrame(civEngine);
+        }
+        
+        if (e.getSource() == loadGame){
+            BottomPanel.remove(newGame);
+            BottomPanel.remove(loadGame);
+            
+           JFileChooser chooser = new JFileChooser(); 
+            int choice = chooser.showOpenDialog(this); 
+            if (choice != JFileChooser.APPROVE_OPTION) return; 
+            File chosenFile = chooser.getSelectedFile(); 
+            
+            //Do Something with chosen file once we get a load game function going.
+            
+            validate();
+            repaint();
+        }
+        
+    }
+    private GridBagLayout createLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {800, 0};
+        GBL.rowHeights = new int[] {450, 50};
+        return GBL;
+    }
+    private GridBagLayout RaceSelectLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {400, 400};
+        GBL.rowHeights = new int[] {56, 56, 56, 56, 56, 56, 56, 56, 56};
+        return GBL;
+    }
+
+}

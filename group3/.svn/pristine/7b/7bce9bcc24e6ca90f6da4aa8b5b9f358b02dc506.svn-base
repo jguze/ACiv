@@ -1,0 +1,33 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.research;
+
+import civ.enums.UnitType;
+import java.util.ArrayList;
+
+
+class ModernWarefareNode extends TreeNode {
+
+    public ModernWarefareNode(ArrayList <UnitType> aU) {
+        super(aU);
+        turnsToComplete = 20;
+    }
+
+    @Override
+    public void researchComplete() {
+        this.setResearched(true);
+        availableUnits.add(UnitType.ARMOR);
+        availableUnits.add(UnitType.ARTILLERY);
+        availableUnits.add(UnitType.MARINE);
+        availableUnits.add(UnitType.PARATROOPER);
+        availableUnits.add(UnitType.MECH_INFANTRY);
+        availableUnits.add(UnitType.HOWITZER);
+        availableUnits.add(UnitType.BATTLESHIP);
+        availableUnits.add(UnitType.ALPINE_TROOPS);
+        availableUnits.add(UnitType.CRUISER);
+    }
+
+}

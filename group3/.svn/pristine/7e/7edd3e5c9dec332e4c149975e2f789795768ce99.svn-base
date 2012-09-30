@@ -1,0 +1,108 @@
+Terrain:
+	attrs:
+		char terrainIdentifier -> The identifier by which the terrain is found. Example, forest would be "f".
+		int movement -> Movement cost to move to this terrain. For example, plains could have a movement cost of 1.
+		Sprite sprite -> The image that represents the specific terrain. 'Sprite' may not be the proper object name, I'm not sure what we're using.
+		int defenseBonus -> The percent bonus that the specific terrain gives a unit or city that is on the tile.
+		
+Resources:
+	attrs:
+		char resourceIdentifier -> The identifier by which the resource is found. Example, whale would be '><>' (not really. More like 'w').
+		int production -> The increase in production a city will obtain.
+		int food -> The increase in food a city will obtain.
+		Sprite sprite -> The image that respresents the resource. Layered on top of terrain?
+
+GameUtils:
+	- Holds the resourceMap, terrainMap, and unitMap. The ResourceMap and TerrainMap objects were deprecated since all they held were HashMaps.
+	- Holds all character identifiers as constants.
+	attrs:
+		*List all constant identifiers*
+		HashMap<char><Resource> resourceMap -> A map of Resource objects with a character identifier as the key.
+		HashMap<char><Terrain> terrainMap -> A map of Terrain objects with the character identifier as the key.
+		HashMap<char><Unit> unitMap -> A map of all units. If a player creates a unit, all unit info can be copied from this. **Note that instead this could hold the images for units instead since every unit should probably be it's own object.**
+	methods:
+		void setUpMaps() -> Load all images from files and create the appropriate Terrain, Resource, and Unit objects and place into the map. All file I/O for these images is done here once.
+		Resource getResource(char identifier) -> get the resource object corresponding to the identifier.
+		Terrain getTerrain(char identifier) -> returns the Terrain corresponding to the identifier. 
+		Unit getUnit(char identifier) -> returns the Unit object corresponding to the identifier.
+		
+City implements GameObject:
+	attrs:
+		int level -> Current level of the city
+		int population -> current population of the city. In tens of thousands.
+		int radius -> All tiles in this radius are available resources for the city.
+		int id -> Cities unique id. All cities are stored in a map located in the CityManager.
+		int owner -> Players are numbered 0-n. Can check who owns the city.
+		
+CityManager:
+	- All cities should be in a central location, and every tile has a cityid attribute. A null cityid means no city. This way the whole game has access to all cities, instead of only the player.
+	- The player has an ArrayList of all his cityIds, which can be used to get his city.
+	attrs:
+		HashMap<int><City> cityMap -> A HashMap of all cities with the unique id of all the cities as the key.
+	methods:
+		City getCity(int id) -> Get the city corresponding to the id
+		void addCity(int id, city City) -> Add a new city to the city manager.
+
+s
+MAP
+The physical terrain that the plays are going to build their civilizatin on top of. It consists of a 2D array of TILES of different types of terrain and terrain bonuses. Each provide resources, defense benefits, etc. Keep in mind that the map wraps horizontally bot not vertically.
+	Attributes:
+		TILE[][]
+	Methods:
+		GenerateMapFromFile(String Filename)
+
+
+TILE
+Note: Suggested to use BufferedImage
+When redrawing tiles only draw what you need to not all of it.	
+A single piece of the terrain within the map. There may be several thousand of these in a single map. 
+	Attributes:
+		TERRAINTYPE Type
+		Int X_Position
+		Int Y_Position
+		Bool isIrrigated
+		Bool isMined
+	Methods:
+
+TERRAIN_TYPE <ENUM>
+A enumeration of the different types of terrain that we can have in the world. Bonuses that are possible on that type are stated as well
+	DESERT 
+		(NONE, OASIS, OIL)
+	FOREST 
+		(NONE, DUCK/PHEASANT, SILK)
+	GLACIER 
+		(NONE, IVORY, OIL)
+	GRASSLAND 
+		(NONE, SHIELD)
+	HILLS 
+		(NONE, COAL, WINE)
+	JUNGLE 
+		(NONE, GEMS, FRUIT)
+	MOUNTAINS 
+		(NONE, GOLD, IRON)
+	OCEAN
+		(NONE, FISH, WHALE)
+	PLAINS
+		(NONE, BUFFALO, WHEAT)
+	SWAMP
+		(NONE, PEAT, SPICE)
+	TUNDRA
+		(NONE, GAME, FURS)
+
+TERRAIN_BONUS <ENUM>
+Some land types can have bonuses on them such as oil, peat or iron ore, these increase certain in the resources available on that piece of land.
+NOTE: WE MAY WANT TO TIE THIS INTO THE TERRAIN TYPE RATHER THAN HAVING ANOTHER ATTRIBUTE TO MANAGE
+FOR THE TIME BEING I AM GOING TO PUT THEM IN WITH THE TERRAIN TYPE
+
+TERRAIN_MANAGER
+Because we may have several hundred or even thousand of the same kind of tile, it doesnt make sense to store several thousand instances of the information about the tile (ie store the info with each tile). For this reason th TERRAIN_MANAGER exists. It will be the governing class of the important attibutes of a class such as the defence benifits and resources available. We also dont want to leave this generation to the Map class simply to give it one less responsibility.
+	Attributes:
+
+	Methods:
+		GetTileInformation(TILE) : TERRAIN_INFO
+
+TERRAIN_INFO
+Simply to encapsulate all the information about a tile into a neat little package, this class exists.
+	Attributes:
+
+	Methods:

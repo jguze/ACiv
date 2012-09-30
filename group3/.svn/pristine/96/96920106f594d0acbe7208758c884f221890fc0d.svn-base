@@ -1,0 +1,54 @@
+package civ.UI;
+
+import java.awt.Container;
+import java.awt.FlowLayout;
+import javax.swing.*;
+import java.awt.Color;
+
+/*
+ * Mark's, no touchy
+ */
+
+public class CityView extends JFrame{
+    
+    JFrame newFrame = new JFrame("New Window");
+    
+    private Container cp = getContentPane();
+    
+    public CityView(){
+        super("City");
+        
+        cp.setLayout(new FlowLayout());
+        cp.setBackground(Color.GREEN);
+        
+        JTabbedPane tabbedPane = new JTabbedPane();
+        cp.add(tabbedPane);
+        
+        JPanel overview = new JPanel();
+        JPanel production = new JPanel();
+        JPanel resourceManagement = new JPanel();
+        
+        JLabel overviewLabel = new JLabel();
+        overviewLabel.setText("Here goes resource info and production info.");
+        JLabel productionLabel = new JLabel();
+        productionLabel.setText("Here goes options to change production.");
+        JLabel resourceManagementLabel = new JLabel();
+        resourceManagementLabel.setText("Here goes options to change resources.");
+        
+        overview.add(overviewLabel);
+        production.add(productionLabel);
+        resourceManagement.add(resourceManagementLabel);
+        
+        tabbedPane.addTab("Overview", overview);
+        tabbedPane.addTab("Resources", production);
+        tabbedPane.addTab("Production", resourceManagement);
+         
+        cp.add(tabbedPane);
+       
+       
+        this.setSize(350, 250);
+        this.setVisible(true);
+        this.setResizable(false);
+    }
+        
+}

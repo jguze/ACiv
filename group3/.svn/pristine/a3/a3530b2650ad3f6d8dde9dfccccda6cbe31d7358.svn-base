@@ -1,0 +1,29 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package civ.navigation;
+
+import civ.Map;
+
+
+public class EuclideanHeuristic implements AStarHeuristic {
+
+    /**
+     * Gets cost of moving from one tile to another based on the Euclidean distance equation.
+     * @param x current x location
+     * @param y current y location
+     * @param moveToX destination x location
+     * @param moveToY destination y location
+     * @return the movement cost associated with moving to the destination tile
+     */
+    @Override
+    public float getCost(int x, int y, int moveToX, int moveToY) {
+        float deltaX = moveToX - x;
+        float deltaY = moveToY - y;
+        
+        return (float)(Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)));
+    }
+    
+    
+}

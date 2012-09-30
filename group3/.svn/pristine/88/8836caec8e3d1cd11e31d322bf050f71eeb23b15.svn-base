@@ -1,0 +1,105 @@
+package civ;
+
+import civ.enums.CityStyle;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+
+public class Player {
+    private int id;
+    private String name;
+    private String nation;
+    private int gold;
+    private City capital;
+    private ArrayList<Unit> units;
+    private CityStyle buildingStyle;
+    private BufferedImage flag;
+    private ArrayList<City> cities;
+    private ResearchTree researchTree;
+
+    public Player() {
+        units = new ArrayList();
+    }
+    
+    public CityStyle getBuildingStyle() {
+        return buildingStyle;
+    }
+
+    public void setBuildingStyle(CityStyle buildingStyle) {
+        this.buildingStyle = buildingStyle;
+    }
+
+    public City getCapital() {
+        return capital;
+    }
+
+    public void setCapital(City capital) {
+        this.capital = capital;
+    }
+
+    public ArrayList<City> getCities() {
+        return cities;
+    }
+
+    public void setCities(ArrayList<City> cities) {
+        this.cities = cities;
+    }
+
+    public BufferedImage getFlag() {
+        return flag;
+    }
+
+    public void setFlag(BufferedImage flag) {
+        this.flag = flag;
+    }
+
+    public int getGold() {
+        return gold;
+    }
+
+    public void setGold(int gold) {
+        this.gold = gold;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getNation() {
+        return nation;
+    }
+
+    public void setNation(String nation) {
+        this.nation = nation;
+    }
+
+    public ResearchTree getResearchTree() {
+        return researchTree;
+    }
+
+    public void setResearchTree(ResearchTree researchTree) {
+        this.researchTree = researchTree;
+    }
+
+    public ArrayList<Unit> getUnits() {
+        return units;
+    }
+
+    public void setUnits(ArrayList<Unit> units) {
+        //TODO: This has to be implemented in order for us to loop through each of a players unit and update its location while "walking"
+        
+        this.units = units;
+    }
+    
+}

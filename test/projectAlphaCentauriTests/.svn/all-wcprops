@@ -1,0 +1,21 @@
+K 26
+svn:wc:ra_dav:activity-url
+V 29
+/svn/seng271/group3/!svn/act/
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/seng271/group3/!svn/ver/14/projectAlphaCentauriTests
+END
+build.xml
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/seng271/group3/!svn/ver/10/projectAlphaCentauriTests/build.xml
+END
+manifest.mf
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/seng271/group3/!svn/ver/10/projectAlphaCentauriTests/manifest.mf
+END

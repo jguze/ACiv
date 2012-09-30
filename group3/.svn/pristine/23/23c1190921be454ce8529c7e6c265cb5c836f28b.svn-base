@@ -1,0 +1,56 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package civ.research;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+
+/**
+ * TreeNode abstract that every research TreeNode will implement. Contains the
+ * completed() method, the isAvailable()  
+ * @author Justin
+ */
+public abstract class TreeNode implements Serializable {
+    private boolean isResearched = false;
+    public ArrayList<TreeNode> children;
+    
+    public TreeNode() {
+        children = new ArrayList<TreeNode>();
+    }
+    
+    public abstract void researchComplete();
+        
+    //Checks if the children are researched or not.
+    public boolean isAvailable() {
+        if (children.isEmpty()) {
+            return true;
+        }
+        
+        for (TreeNode child : children) {
+            if (!child.isResearched()) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    public ArrayList<TreeNode> getChildren() {
+        return children;
+    }
+    
+    public boolean isResearched() {
+        return isResearched;
+    }
+    
+    public void addChild(TreeNode e) {
+        children.add(e);
+    }
+    
+    public void addChildren(TreeNode ... params) {
+        for (TreeNode e : params) {
+            addChild(e);
+        }
+    }
+}

@@ -1,0 +1,78 @@
+package civ.UI;
+
+import civ.engine.GameEngine;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.image.BufferedImage;
+
+/*
+ * Mark's, no touchy
+ */
+
+public class SplashView extends JFrame implements ActionListener{
+    
+    JButton PlayerTest, PlayerTest2;
+    
+    JFrame newFrame = new JFrame("New Window");
+    private GameEngine civEngine;
+    
+    private BufferedImage splashGraphic;
+    
+    private Container cp = getContentPane();
+    
+    public SplashView(){
+        super("Splash");
+        
+        //civEngine = new GameEngine();
+        
+        cp.setLayout(new GridLayout(2, 2, 50, 50));
+        cp.setBackground(Color.DARK_GRAY);
+        
+        Insets buttonMargin = new Insets(5, 1, 5, 1);
+        
+        PlayerTest = new JButton("1PlayerTest");
+        PlayerTest.setBackground(Color.LIGHT_GRAY);
+        PlayerTest.setForeground(Color.BLACK);
+        PlayerTest.setMargin(buttonMargin);
+        PlayerTest.addActionListener(this);
+        
+        PlayerTest2 = new JButton("2PlayerTest");
+        PlayerTest2.setBackground(Color.LIGHT_GRAY);
+        PlayerTest2.setForeground(Color.BLACK);
+        PlayerTest2.setMargin(buttonMargin);
+        PlayerTest2.addActionListener(this);
+        
+        JLabel Label1 = new JLabel();
+        JLabel Label2 = new JLabel();
+        Label2.setText("Choose to use one or two player:");
+        Label2.setForeground(Color.WHITE);
+        
+        cp.add(Label2);
+        cp.add(Label1);
+        cp.add(PlayerTest);
+        cp.add(PlayerTest2);
+        
+        this.setSize(750, 500);
+        this.setVisible(true);
+        this.setResizable(false);
+    }
+    
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == PlayerTest) {
+            civEngine = new GameEngine(1);
+            //civEngine.setnumberPlayers(1);
+            this.setVisible(false);
+            this.dispose();
+            CivFrame civ = new CivFrame(civEngine);
+        }
+        if (e.getSource() == PlayerTest2){
+            civEngine = new GameEngine(2);
+            //civEngine.setnumberPlayers(2);
+            this.setVisible(false);
+            this.dispose();
+            CivFrame civ = new CivFrame(civEngine);
+        }
+    }
+}

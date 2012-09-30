@@ -1,0 +1,55 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package civ.UI;
+
+
+import civ.Unit;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import javax.swing.*;
+import java.awt.Color;
+import java.util.ArrayList;
+
+
+/**
+ *
+ * @author Mikko Sanchez =D
+ */
+public class UnitSelectView extends JFrame{
+    
+    JFrame newFrame = new JFrame("New Window");
+    
+    private Container up = getContentPane();
+    
+    public UnitSelectView(ArrayList<Unit> units){
+        super("Select yo unit foo");
+        int i;
+        
+        String UnitList[] = new String[units.size()];
+        for(i = 0; i < units.size(); i++){
+            UnitList[i] = units.get(i).getUnitType().toString();
+        }
+        
+        up.setLayout(new FlowLayout());
+        up.setBackground(Color.RED);
+        
+        JPanel panel = new JPanel();
+        JList list = new JList(UnitList);
+        
+        panel.add(list);
+        up.add(panel);
+        up.setVisible(true);
+        
+        
+        this.setSize(350, 250);
+        this.setVisible(true);
+        this.setResizable(false);
+        
+    }
+    
+    
+    
+    
+}

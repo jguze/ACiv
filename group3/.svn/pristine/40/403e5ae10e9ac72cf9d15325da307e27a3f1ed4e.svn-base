@@ -1,0 +1,45 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ;
+
+public class TerrainInfo {
+    private int foodResource;
+    private int productionResource;
+    private int defenseBonus;
+    private int movementCost;
+    
+    public int getDefenseBonus() {
+        return defenseBonus;
+    }
+
+    public void setDefenseBonus(int defenseBonus) {
+        this.defenseBonus = defenseBonus;
+    }
+
+    public int getFoodResource() {
+        return foodResource;
+    }
+
+    public void setFoodResource(int foodResource) {
+        this.foodResource = foodResource;
+    }
+
+    public int getMovementCost() {
+        return movementCost;
+    }
+
+    public void setMovementCost(int movementCost) {
+        this.movementCost = movementCost;
+    }
+
+    public int getProductionResource() {
+        return productionResource;
+    }
+
+    public void setProductionResource(int productionResource) {
+        this.productionResource = productionResource;
+    }
+}

@@ -1,0 +1,237 @@
+package civ.UI;
+
+import civ.SaveObject;
+import javax.swing.*;
+import java.awt.*;
+import civ.engine.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+
+public class CivFrame extends JFrame implements ActionListener
+{
+    private MapView mapView;
+    private MiniMapView miniMapView;
+    private GameEngine civEngine;
+    
+    JButton turnDone;
+    JTextField turnCounter;
+    JPanel turnActions;
+    JLabel turnsCounted;
+    
+    JMenuBar menuBar;
+    
+    JMenu  fileMenu, commandMenu, helpMenu;
+    
+    JMenuItem save, load, quit;
+    JMenuItem move, buildCity;
+    JMenuItem about, tutorial;    
+   
+    Container CP = this.getContentPane();
+
+    public CivFrame(GameEngine engine)
+    {
+        super("MainCivFrame");
+        civEngine = engine;
+        setup();
+    }
+    
+    //Used when loading from a save
+    public CivFrame(SaveObject save) {
+        super("MainCivFrame");
+        civEngine = save.gameEngine;
+        civEngine.setNewComponentsFromLoad();
+        setup();
+        turnCounter.setText(Integer.toString(civEngine.getTurnCount()));
+    }
+    
+    private void setup() {
+        //They look smexiers with borders, BUT DONT TOUCH!
+        miniMapView = new MiniMapView(152,122);
+        mapView = new MapView(civEngine, 632, 592, miniMapView);
+        
+        menuBar = new JMenuBar();
+        
+        fileMenu = new JMenu("File", true);
+        
+        save = new JMenuItem("Save");
+        load = new JMenuItem("Load");
+        quit = new JMenuItem("Quit");
+        
+        commandMenu = new JMenu("Commands");
+        
+        move = new JMenuItem("Goto Location", 'g');
+        buildCity = new JMenuItem("Build City", 'b');
+        
+        helpMenu = new JMenu("Help");
+        
+        about = new JMenuItem("About PaulCiv");
+        tutorial = new JMenuItem("Tutorial");
+        
+        save.addActionListener(this);
+        load.addActionListener(this);
+        quit.addActionListener(this);
+        move.addActionListener(this);
+        buildCity.addActionListener(this);
+        about.addActionListener(this);
+        tutorial.addActionListener(this);
+        
+        fileMenu.add(save);
+        fileMenu.add(load);
+        fileMenu.add(quit);
+        
+        commandMenu.add(move);
+        commandMenu.add(buildCity);
+        
+        helpMenu.add(about);
+        helpMenu.add(tutorial);
+        
+        menuBar.add(fileMenu);
+        menuBar.add(commandMenu);
+        menuBar.add(helpMenu);
+        
+        this.setJMenuBar(menuBar);
+        
+        CP.setLayout(this.createLayout());
+        CP.setPreferredSize(new Dimension(800, 600));
+
+        CP.setBackground(Color.DARK_GRAY);
+        Insets buttonMargin = new Insets(5, 1, 5, 1);
+        
+        //Use this line to have a 10x10 tile map.
+        //mapView = new MapView(civEngine, 302, 302);
+        
+        turnDone = new JButton("Turn Done");
+        turnDone.setBackground(Color.LIGHT_GRAY);
+        turnDone.setForeground(Color.BLACK);
+        turnDone.setMargin(buttonMargin);
+        turnDone.addActionListener(this);
+    
+        turnCounter = new JTextField("0", 3);
+        turnCounter.setEditable(false);
+        turnCounter.setFont(new Font("Courier", Font.PLAIN, 16));
+        turnCounter.setHorizontalAlignment(4);
+        
+        GridBagConstraints c = new GridBagConstraints();
+        
+        turnActions = new JPanel();
+        turnActions.setLayout(turnActionsLayout());
+        turnActions.setBackground(Color.GRAY);
+        turnActions.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 2));
+        
+        turnsCounted = new JLabel("Turns Done:");
+        turnsCounted.setForeground(Color.WHITE);
+ 
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(turnsCounted, c);
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 2;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(turnDone, c);
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 1;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        turnActions.add(turnCounter, c);
+        
+
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(miniMapView, c);
+
+        //Add the main map view to the frame.
+        c.insets = new Insets(3,3,3,3);
+        c.gridx = 1;
+        c.gridy = 0;
+        c.gridheight = 2;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(mapView, c);
+
+        
+        c.insets = new Insets(4,4,4,4);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        CP.add(turnActions, c);
+        
+
+        save.addActionListener(this);
+
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setResizable(false);
+        this.setSize(800, 600);
+        this.pack(); //DO NOT REMOVE, YOU WILL BREAK THINGS YOU DONT EVEN UNDERSTAND!
+        mapView.paintMap();
+        this.setVisible(true);
+        civEngine.centerOnCity();
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == turnDone) {
+            civEngine.nextTurn();
+            civEngine.changePlayer();
+            int turns = civEngine.getTurnCount();
+            turnCounter.setText(Integer.toString(turns));
+            mapView.requestFocusInWindow();
+        } else if(e.getSource() == move) {
+            civEngine.readyUnitForMovement();
+        } else if (e.getSource() == save) {
+            civEngine.save(new SaveObject(civEngine));
+        } else if (e.getSource() == load) {
+            loadSavedGame();
+        }
+    }
+
+    private GridBagLayout createLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {160, 640};
+        GBL.rowHeights = new int[] {130, 470};
+        return GBL;
+    }
+    
+     private GridBagLayout turnActionsLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {66, 66};
+        GBL.rowHeights = new int[] {45, 45};
+        return GBL;
+    }
+
+    private void loadSavedGame() {
+        SaveObject save = civEngine.load("saveFiles/save.justinisawesome");
+        if (save == null) {
+            JOptionPane.showMessageDialog(this, "Load unsuccessful");
+            return;
+        }
+            
+        this.setVisible(false);
+        this.dispose();
+        CivFrame civ = new CivFrame(save);
+    }
+}

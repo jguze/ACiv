@@ -1,0 +1,64 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.maps;
+
+import java.io.*;
+import java.util.ArrayList;
+/**
+ *
+ * @author paulhunter
+ */
+public class MapInfoCollector
+{
+
+    public static ArrayList<MapInfo> getMapInfos()
+    {
+        ArrayList<MapInfo> result = new ArrayList<MapInfo>();
+        File mapsDirectory = new File("resources/maps");
+        String[] files = mapsDirectory.list();
+        
+        for(String i : files)
+        {
+            if (i.endsWith(".map"))
+            {
+                //System.out.println(mapsDirectory.getPath() + "/" + i);
+                MapInfo info = getMapInfoFromFile(mapsDirectory.getPath() + "/" + i);
+                if(info != null) result.add(info);
+            }
+        }
+        return result;
+    }
+
+    private static MapInfo getMapInfoFromFile(String fileName)
+    {
+        try
+        {
+            MapInfo result = new MapInfo();
+            BufferedReader mapFileReader = new BufferedReader(new FileReader(new File(fileName)));
+            //We need to find: Name, Description, Size (w and h), Number of players
+            String line = mapFileReader.readLine();
+            while(line != null)
+            {
+                String[] values = line.split("=");
+                if(values.length > 1)
+                {
+                    if(values[0].equals("name")) result.name = values[1];
+                    else if(values[0].equals("description")) result.description = values[1];
+                    else if(values[0].equals("numPlayers")) result.numberOfPlayers = Integer.parseInt(values[1]);
+                    else if(values[0].equals("width")) result.size = values[1] + "x" + (result.size!=null?result.size:"");
+                    else if(values[0].equals("height")) result.size += values[1];
+                }
+                line = mapFileReader.readLine();
+            }
+            result.fileName = fileName.substring(fileName.lastIndexOf("/")+1);
+            return result;
+        }
+        catch (IOException e)
+        {
+            return null;
+        }
+    }
+}

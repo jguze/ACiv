@@ -1,0 +1,48 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.UI;
+
+import java.util.Observable;
+import javax.swing.*;
+import civ.engine.GameEngine;
+import civ.MapLocation;
+import java.awt.image.BufferedImage;
+import java.awt.*;
+import javax.swing.*;
+import java.util.Observer;
+import civ.UI.MapView;
+
+/**
+ *
+ * @author paulhunter
+ */
+public class MiniMapView extends JPanel
+{
+    private Graphics2D paintRegion;
+
+    public MiniMapView(int width, int height)
+    {
+        this.setBackground(Color.DARK_GRAY);
+        this.setBorder(new javax.swing.border.LineBorder(Color.LIGHT_GRAY, 1));
+        this.setSize(width, height);
+        this.setPreferredSize(new Dimension(width, height));
+
+        paintRegion = (Graphics2D)this.getGraphics();
+    }
+
+    //This is the 'update' method the for observation pattern on the MapView
+    public void updateView(MapView mainView)
+    {
+        //Things i need to know
+        //The size of the map view, and its camera offset
+        //the total size of the map
+
+        //Should we store an image of the entire map? and simply maniplulate it
+        // and a rectangle representing the mapViews size
+    }
+
+
+}

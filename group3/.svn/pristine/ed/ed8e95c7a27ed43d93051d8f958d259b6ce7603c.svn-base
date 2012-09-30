@@ -1,0 +1,12 @@
+package civ.enums;
+
+public enum AvailableMaps {
+    British_Isles,
+    Europe,
+    France,
+    Iberian_Peninsula,
+    Japan,
+    Medium_Earth,
+    Mini_Earth,
+    Small_Earth
+}

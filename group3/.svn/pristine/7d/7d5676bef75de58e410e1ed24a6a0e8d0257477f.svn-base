@@ -1,0 +1,428 @@
+package civ.UI;
+
+import civ.Player;
+import civ.SaveModule;
+import civ.SaveObject;
+import civ.engine.GameEngine;
+import civ.enums.CityStyle;
+import civ.maps.MapInfo;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import javax.imageio.ImageIO;
+
+/*
+ * Mark's, no touchy.
+ */
+
+public class SplashView extends JFrame implements ActionListener{
+    
+    JButton newGame, loadGame, startGame;
+    
+    JFrame newFrame = new JFrame("New Window");
+    JPanel BackPanel = new JPanel();
+    JPanel BottomPanel = new JPanel();
+    JPanel mapInfoPanel = new JPanel();
+    JPanel playerOptions = new JPanel();
+
+
+    JComboBox amountofplayers, selectingTheMap;
+    JComboBox[] playerRaces = new JComboBox[8];
+    JLabel SelectNum, SelectMap, MapInfo;
+    JLabel mapDescription, mapPlayers, mapSize;
+        JLabel[] playerLabels = new JLabel[8];
+
+    Player[] PlayerData = new Player[8];
+    JTextField[] playerNames = new JTextField[8];
+    JCheckBox spawnType = new JCheckBox("Use random spawn locations");
+    ArrayList<MapInfo> info = civ.maps.MapInfoCollector.getMapInfos();
+
+    private int numberofplayers;
+    private String[] selectNum = new String[8];
+    private String filePath = null;
+    private Boolean spawn = true;
+    
+    MapInfo selectedMap = new MapInfo();
+    
+    private GameEngine civEngine; 
+    private Container cp = getContentPane();
+    private SaveModule saveModule;
+    
+    public SplashView(){
+        super("ACiv Setup");
+        saveModule = new SaveModule();
+        
+        for(int i = 0; i < 8; i++){
+            selectNum[i] = (Integer.toString(i+1));
+        }
+
+        cp.setLayout(createLayout());
+        cp.setBackground(Color.BLACK);
+        
+        GridBagConstraints c = new GridBagConstraints();
+        
+        BackPanel.setBackground(Color.DARK_GRAY);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        cp.add(BackPanel, c);
+        
+        BottomPanel.setBackground(Color.DARK_GRAY);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        cp.add(BottomPanel, c);
+        
+        try{
+            BufferedImage myPicture = ImageIO.read(new File("src/civ/UI/pic for Splash.jpg")); 
+            JLabel picLabel = new JLabel(new ImageIcon( myPicture ));
+            BackPanel.add(picLabel);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+        
+        newGame = new JButton("New Game");
+        newGame.setBackground(Color.LIGHT_GRAY);
+        newGame.setForeground(Color.BLACK);
+        newGame.addActionListener(this);
+        
+        loadGame = new JButton("Load Game");
+        loadGame.setBackground(Color.LIGHT_GRAY);
+        loadGame.setForeground(Color.BLACK);
+        loadGame.addActionListener(this);
+        
+        BottomPanel.add(newGame);
+        BottomPanel.add(loadGame);
+        
+        this.setSize(850, 600);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == newGame) {
+            BackPanel.removeAll();
+            BottomPanel.removeAll();
+            cp.removeAll();
+
+            cp.setLayout(SelectLayout());
+            GridBagConstraints c = new GridBagConstraints();
+
+            BottomPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 3));
+            c.insets = new Insets(5,5,5,5);
+            c.gridx = 0;
+            c.gridy = 0;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            cp.add(BottomPanel, c);
+            BottomPanel.setLayout(OptionsLayout());
+
+            mapInfoPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 3));
+            mapInfoPanel.setBackground(Color.DARK_GRAY);
+            c.gridx = 1;
+            c.gridy = 0;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            cp.add(mapInfoPanel, c);
+            mapInfoPanel.setLayout(MapInfoLayout());
+
+            playerOptions.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 3));
+            playerOptions.setBackground(Color.DARK_GRAY);
+            c.gridx = 0;
+            c.gridy = 1;
+            c.gridheight = 1;
+            c.gridwidth = 2;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            cp.add(playerOptions, c);
+            playerOptions.setLayout(RaceLayout());
+            
+            SelectNum = new JLabel("Select Number Of Players");
+            SelectNum.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 0;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.WEST;
+            c.fill = GridBagConstraints.NONE;
+            BottomPanel.add(SelectNum, c);
+
+            amountofplayers = new JComboBox(selectNum);
+            amountofplayers.setVisible(true);
+            amountofplayers.addActionListener(this);
+            amountofplayers.setSelectedItem(selectNum[0]);
+            c.anchor = GridBagConstraints.EAST;
+            BottomPanel.add(amountofplayers, c);
+
+            SelectMap = new JLabel("Select Map to Use");
+            SelectMap.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 1;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.WEST;
+            c.fill = GridBagConstraints.NONE;
+            BottomPanel.add(SelectMap, c);
+
+            selectingTheMap = new JComboBox();
+            for(MapInfo ob : info){
+                selectingTheMap.addItem(ob);
+            }
+            selectingTheMap.setVisible(true);
+            selectingTheMap.addActionListener(this);
+            selectingTheMap.setSelectedItem(info.get(0));
+            c.anchor = GridBagConstraints.EAST;
+            BottomPanel.add(selectingTheMap, c);
+
+            spawnType.setBackground(Color.DARK_GRAY);
+            spawnType.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 2;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            BottomPanel.add(spawnType, c);
+
+            MapInfo = new JLabel("Map Information");
+            MapInfo.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 0;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(MapInfo, c);
+            
+            validate();
+            repaint();
+        } else if (e.getSource() == loadGame) {            
+            loadSaveGame();
+        }
+        
+       if (e.getSource() == selectingTheMap){
+            JComboBox a = (JComboBox)e.getSource();
+            selectedMap = (MapInfo)a.getSelectedItem();
+            GridBagConstraints c = new GridBagConstraints();
+
+            mapInfoPanel.removeAll();
+
+            MapInfo = new JLabel("Map Information");
+            MapInfo.setForeground(Color.WHITE);
+            c.insets = new Insets(5,5,5,5);
+            c.gridx = 0;
+            c.gridy = 0;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(MapInfo, c);
+
+            MapInfo = new JLabel("Max Players:");
+            MapInfo.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 2;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.WEST;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(MapInfo, c);
+
+            MapInfo = new JLabel("Map Size:");
+            MapInfo.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 3;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.WEST;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(MapInfo, c);
+
+            mapDescription = new JLabel(selectedMap.description);
+            mapDescription.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 1;
+            c.gridheight = 1;
+            c.gridwidth = 2;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(mapDescription, c);
+
+            mapPlayers = new JLabel(Integer.toString(selectedMap.numberOfPlayers));
+            mapPlayers.setForeground(Color.WHITE);
+            c.gridx = 1;
+            c.gridy = 2;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.EAST;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(mapPlayers, c);
+
+            mapSize = new JLabel(selectedMap.size);
+            mapSize.setForeground(Color.WHITE);
+            c.gridx = 1;
+            c.gridy = 3;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.EAST;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(mapSize, c);
+
+            mapSize = new JLabel("Map Preview");
+            mapSize.setForeground(Color.WHITE);
+            c.gridx = 0;
+            c.gridy = 4;
+            c.gridheight = 1;
+            c.gridwidth = 2;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            mapInfoPanel.add(mapSize, c);
+
+            filePath = selectedMap.completeFileName;
+
+            validate();
+            repaint();
+        }
+
+        // TODO: Mark, add a throw of an event here if selectedMap.numberOfPlayers < numberofplayers
+        if (e.getSource() == amountofplayers){
+            JComboBox a = (JComboBox)e.getSource();
+            numberofplayers = Integer.parseInt(a.getSelectedItem().toString());
+
+            playerOptions.removeAll();
+            GridBagConstraints c = new GridBagConstraints();
+
+            for(int i = 0; i < numberofplayers; i++){
+                if(i == selectedMap.numberOfPlayers){
+                    numberofplayers = i;
+                    break;
+                }
+                playerLabels[i] = new JLabel("Player" + (Integer.toString(i+1)));
+                playerLabels[i].setForeground(Color.WHITE);
+                playerRaces[i] = new JComboBox(CityStyle.values());
+                playerRaces[i].setVisible(true);
+                playerRaces[i].setSelectedItem(CityStyle.EUROPEAN);
+                playerRaces[i].addActionListener(this);
+                playerNames[i] = new JTextField("Player" + Integer.toString(i+1), 25);
+                c.gridy = i;
+                c.gridx = 0;
+                playerOptions.add(playerLabels[i], c);
+                c.gridx = 1;
+                playerOptions.add(playerNames[i], c);
+                c.gridx = 2;
+                playerOptions.add(playerRaces[i], c);
+            }
+
+            startGame = new JButton("Start Game");
+            startGame.setBackground(Color.LIGHT_GRAY);
+            startGame.setForeground(Color.BLACK);
+            startGame.addActionListener(this);
+            c.gridx = 2;
+            c.gridy = 8;
+            c.gridheight = 1;
+            c.gridwidth = 1;
+            c.anchor = GridBagConstraints.CENTER;
+            c.fill = GridBagConstraints.NONE;
+            playerOptions.add(startGame, c);
+
+            validate();
+            repaint();
+        }
+        
+        if (e.getSource() == startGame){
+            for(int i = 0; i < numberofplayers; i++){
+                PlayerData[i] = new Player();
+                String temp = playerRaces[i].getSelectedItem().toString();
+                if (temp.equals("ASIAN")) PlayerData[i].setBuildingStyle(CityStyle.ASIAN);
+                if (temp.equals("EUROPEAN")) PlayerData[i].setBuildingStyle(CityStyle.EUROPEAN);
+                if (temp.equals("CLASSICAL")) PlayerData[i].setBuildingStyle(CityStyle.CLASSICAL);
+                if (temp.equals("INDUSTRIAL")) PlayerData[i].setBuildingStyle(CityStyle.INDUSTRIAL);
+                if (temp.equals("MODERN")) PlayerData[i].setBuildingStyle(CityStyle.MODERN);
+                if (temp.equals("POSTMODERN")) PlayerData[i].setBuildingStyle(CityStyle.POSTMODERN);
+                if (temp.equals("TROPICAL")) PlayerData[i].setBuildingStyle(CityStyle.TROPICAL);
+                PlayerData[i].setName(playerNames[i].getText());
+            }
+            if(spawnType.isSelected()) spawn = false;
+            civEngine = new GameEngine(numberofplayers, filePath, PlayerData, spawn);
+            this.setVisible(false);
+            this.dispose();
+            CivFrame civ = new CivFrame(civEngine);
+        }
+        
+        if (e.getSource() == loadGame){
+            BottomPanel.remove(newGame);
+            BottomPanel.remove(loadGame);
+            
+           JFileChooser chooser = new JFileChooser(); 
+            int choice = chooser.showOpenDialog(this); 
+            if (choice != JFileChooser.APPROVE_OPTION) return; 
+            File chosenFile = chooser.getSelectedFile(); 
+            
+            //Do Something with chosen file once we get a load game function going.
+            
+            validate();
+            repaint();
+        }
+    }
+    private GridBagLayout createLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {800, 0};
+        GBL.rowHeights = new int[] {450, 50};
+        return GBL;
+    }
+    private GridBagLayout SelectLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {350, 490};
+        GBL.rowHeights = new int[] {150, 408};
+        return GBL;
+    }
+    private GridBagLayout OptionsLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {335, 0, 0};
+        GBL.rowHeights = new int[] {47, 47, 46};
+        return GBL;
+    }
+    private GridBagLayout RaceLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {273, 273, 273};
+        GBL.rowHeights = new int[] {43, 43, 43, 43, 43, 43, 43, 43, 43};
+        return GBL;
+    }
+    private GridBagLayout MapInfoLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {236, 236};
+        GBL.rowHeights = new int[] {28, 28, 28, 28, 28};
+        return GBL;
+    }
+
+    private void loadSaveGame() {
+        SaveObject save = saveModule.load("saveFiles/save.justinisawesome");
+        if (save == null) {
+            JOptionPane.showMessageDialog(this, "Load unsuccessful");
+            return;
+        }
+            
+        this.setVisible(false);
+        this.dispose();
+        CivFrame civ = new CivFrame(save);
+    }
+
+}

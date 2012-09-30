@@ -1,0 +1,67 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.engine;
+
+import civ.City;
+import civ.MapLocation;
+import civ.World;
+import civ.enums.CityStyle;
+import java.util.ArrayList;
+import java.util.EnumMap;
+
+
+public class CityManager {
+    World world;
+    private static boolean DEBUG = true;
+    
+    public CityManager(World world) {
+        this.world = world;
+    }
+    
+    public City createCity(String name, CityStyle type, MapLocation mapLocation) {
+        City city = new City(name, type, mapLocation);
+        findAvailableResources(city);
+        return city;
+    }
+    
+    public void findAvailableResources(City city) {
+        MapLocation topLeftLocation = new MapLocation(city.getMapLocation().x - city.getRadius(),
+                city.getMapLocation().y - city.getRadius());
+        
+        if (topLeftLocation.x < 0) {
+            topLeftLocation.x = world.getMap().getMapWidth() + topLeftLocation.x;
+        }
+        if (topLeftLocation.y < 0) {
+            topLeftLocation.y = 0;
+        }
+        
+        ArrayList<MapLocation> resourceList = new ArrayList<MapLocation>();
+        
+        int yLimit = topLeftLocation.y + (city.getRadius() * 2) + 1;
+        if (yLimit > world.getMap().getMapHeight()) {
+            yLimit = world.getMap().getMapHeight() - 1;
+        }
+        
+        int xLimit = topLeftLocation.x + (city.getRadius() * 2) + 1;
+        if (xLimit > world.getMap().getMapWidth() - 1) {
+            xLimit = xLimit - world.getMap().getMapWidth();
+        }
+        
+        for (int v = 0;topLeftLocation.y < yLimit; topLeftLocation.y++,v++) {
+            int r = 0;
+            for (int i = topLeftLocation.x; i != xLimit; i++, r++) {
+                if (i > world.getMap().getMapWidth() - 1) {
+                    i = 0;
+                }
+                
+                resourceList.add(new MapLocation(i, topLeftLocation.y));
+                
+            }
+        }
+        
+        city.setAvailableResources(resourceList);    
+    }
+}

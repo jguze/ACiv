@@ -1,0 +1,101 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package civ.UI;
+
+
+import civ.Unit;
+import java.awt.*;
+import javax.swing.*;
+import java.util.ArrayList;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+
+/**
+ *
+ * @author Mikko Sanchez =D
+ */
+public class UnitSelectView extends JFrame implements ListSelectionListener
+{
+    private Container up;
+    private JList list;
+    private int IndexOfSelectedUnit;
+    
+    public UnitSelectView(ArrayList<Unit> units){
+        super("Unit Select");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        
+        int i;
+        up = getContentPane();
+        up.setLayout(createLayout());
+        up.setBackground(Color.DARK_GRAY);
+        
+        String UnitList[] = new String[units.size()];
+        
+        for(i = 0; i < units.size(); i++){
+            UnitList[i] = units.get(i).getUnitType().toString();
+        }
+        
+        this.list = new JList(UnitList);
+        this.list.setVisibleRowCount(3);
+        JScrollPane scrollPane = new JScrollPane(list);
+        scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 3));
+        
+        GridBagConstraints c = new GridBagConstraints();
+        
+        list.addListSelectionListener(this);
+        
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 2;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        up.add(scrollPane, c);
+        
+        JLabel selectUnit = new JLabel("Select Unit:");
+        selectUnit.setForeground(Color.WHITE);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        up.add(selectUnit, c);
+
+        up.setVisible(true);
+        
+        this.setSize(200, 150);
+        this.setVisible(true);
+        this.setResizable(false);
+    }
+    
+    public void isUnitSelected(ListSelectionEvent event){
+        if(!event.getValueIsAdjusting()){
+            IndexOfSelectedUnit = list.getSelectedIndex();
+            this.dispose();
+        }
+            
+    }
+    
+    public int getIndexOfSelectedUnit(){
+        return IndexOfSelectedUnit;
+    }
+
+    @Override
+    public void valueChanged(ListSelectionEvent e) {
+        if(!e.getValueIsAdjusting()){
+            IndexOfSelectedUnit = list.getSelectedIndex();
+            this.dispose();
+        }
+    }
+    private GridBagLayout createLayout(){
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {90, 90};
+        GBL.rowHeights = new int[] {30, 90};
+        return GBL;
+    }
+}
+    

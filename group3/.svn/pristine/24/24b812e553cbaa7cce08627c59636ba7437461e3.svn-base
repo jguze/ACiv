@@ -1,0 +1,116 @@
+package civ.UI;
+
+
+import civ.Unit;
+import civ.engine.GameEngine;
+import civ.engine.WindowHandler;
+import civ.enums.UnitType;
+import java.awt.*;
+import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
+import javax.swing.*;
+import java.util.ArrayList;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+
+/**
+ *
+ * @author Mikko Sanchez =D
+ */
+public class UnitSelectView extends JFrame implements ListSelectionListener
+{
+    
+    
+    private Container cp;
+    private JList list;
+    
+    private int IndexOfSelectedUnit;
+    
+    GameEngine game;
+    ArrayList<Unit> unit;
+    
+    
+    
+    public UnitSelectView(ArrayList<Unit> units, GameEngine gameEngine){
+        super("Unit Selection");
+        game = gameEngine;
+        unit = units;
+        int i;
+        String UnitList[] = new String[units.size()];
+
+        for(i = 0; i < units.size(); i++){
+            UnitList[i] = units.get(i).getUnitType().toString();
+        }
+        
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        
+        cp = getContentPane();
+        cp.setLayout(new GridBagLayout());
+        cp.setBackground(Color.BLUE);
+        cp.setPreferredSize(new Dimension(130,200));
+        
+        JPanel panel = new JPanel();
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH), "Select a Unit:"));
+        panel.setBackground(Color.LIGHT_GRAY);
+        panel.setPreferredSize(new Dimension(130,200));
+        panel.setSize(298,298);
+        panel.setVisible(true);
+        
+        this.list = new JList(unit.toArray());
+        this.list.setCellRenderer(new ImageRenderer(gameEngine));
+        this.list.setVisibleRowCount(5);
+        
+        JScrollPane scrollPane = new JScrollPane(list);
+        scrollPane.setSize(100,300);
+        
+        panel.add(scrollPane);
+        cp.add(panel);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setSize(100,90);
+        this.pack();
+        this.addWindowListener(new WindowHandler(gameEngine));
+        
+        list.addListSelectionListener(this);
+        
+    }
+    
+    @Override
+    public void valueChanged(ListSelectionEvent e) {
+        if(!e.getValueIsAdjusting()){
+            IndexOfSelectedUnit = list.getSelectedIndex();
+            game.setCurrentlySelectedUnit(unit.get(IndexOfSelectedUnit));
+            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+
+        }    
+    }
+}
+
+class ImageRenderer extends DefaultListCellRenderer
+{
+    
+    private GameEngine game;
+    
+    ImageRenderer(GameEngine gE) {
+        game = gE;
+    }
+    
+    @Override
+    public Component getListCellRendererComponent(JList list,
+                                                  Object value,
+                                                  int index,
+                                                  boolean isSelected,
+                                                  boolean cellHasFocus)
+    {   
+        // for default cell renderer behavior
+        Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+        // set icon for cell image
+        ((JLabel)c).setIcon(new ImageIcon((BufferedImage)game.getUnitSprite(((Unit)value).getUnitType())));
+        ((JLabel)c).setText(((Unit)value).getUnitType().toString());
+        return c;
+    }
+}
+
+    

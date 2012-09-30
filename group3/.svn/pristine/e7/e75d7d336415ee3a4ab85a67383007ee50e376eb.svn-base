@@ -1,0 +1,163 @@
+package civ;
+
+import civ.enums.UnitTravelType;
+import civ.enums.UnitType;
+import civ.navigation.Path;
+import java.util.PriorityQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+
+
+public class Unit {
+    
+    private MapLocation mapLocation;
+    private int movementRange;
+    private int health;
+    private int baseAttack;
+    private int baseArmor;
+    private Path moveList;
+    private UnitType unitType;
+    private UnitTravelType movementType;
+    private int remainingMovement;
+    private Player owner;
+    private int maxHealth; // Maximum possible health a unit can have
+    private int turnsToProduce;
+    
+    public enum State {
+        IDLE,
+        MOVING,
+        IRRIGATING,
+        FARMING,
+        MINING,
+        BUILDING_ROAD
+    };
+    
+    private State state;
+
+    public Unit(UnitType uT, int h, int bA, int bAr, int mR, UnitTravelType mT, int tTP)
+    {
+        movementRange = mR;
+        maxHealth = h;
+        health = h;
+        baseAttack = bA;
+        baseArmor = bAr;
+        unitType = uT;
+        movementType = mT;
+        turnsToProduce = tTP;
+        state = State.IDLE;
+    }
+    
+    public Unit(Unit unit) {
+        movementRange = unit.getMovementRange();
+        health = unit.getHealth();
+        maxHealth = unit.getHealth();
+        baseAttack = unit.getBaseAttack();
+        baseArmor = unit.getBaseArmor();
+        unitType = unit.getUnitType();
+        movementType = unit.getMovementType();
+        state = State.IDLE;
+    }
+    
+    public int getBaseArmor() {
+        return baseArmor;
+    }
+
+    public void setBaseArmor(int baseArmor) {
+        this.baseArmor = baseArmor;
+    }
+
+    public int getBaseAttack() {
+        return baseAttack;
+    }
+
+    public void setBaseAttack(int baseAttack) {
+        this.baseAttack = baseAttack;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public MapLocation getMapLocation() {
+        return mapLocation;
+    }
+    
+    public String getHealthRatio() {
+        return Integer.toString((int)((((double)this.health)/this.maxHealth) * 10));
+    }
+
+    public void setMapLocation(MapLocation mapLocation) {
+        this.mapLocation = mapLocation;
+    }
+
+    public int getMovementRange() {
+        return movementRange;
+    }
+
+    public void setMovementRange(int movementRange) {
+        this.movementRange = movementRange;
+    }
+
+    public UnitTravelType getMovementType() {
+        return movementType;
+    }
+
+    public void setMovementType(UnitTravelType movementType) {
+        this.movementType = movementType;
+    }
+
+    public int getRemainingMovement() {
+        return remainingMovement;
+    }
+
+    public void setRemainingMovement(int remainingMovement) {
+        this.remainingMovement = remainingMovement;
+    }
+
+    public UnitType getUnitType() {
+        return unitType;
+    }
+
+    public void setUnitType(UnitType unitType) {
+        this.unitType = unitType;
+    }
+
+   /* public int getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(int ownerId) {
+        this.ownerId = ownerId;
+    }*/
+    
+    public Player getOwner() {
+        return owner;
+    }
+
+    public void setOwner(Player owner) {
+        this.owner = owner;
+    }
+
+    public void setMoveList(Path moveList) {
+        this.moveList = moveList;
+    }
+
+    public Path getPath() {
+        return this.moveList;
+    }
+
+    public int getTurnsToProduce() {
+        return turnsToProduce;
+    }
+    public void setState(State state) {
+        this.state = state;
+    }
+    
+    public State getState() {
+        return this.state;
+    }
+    
+}

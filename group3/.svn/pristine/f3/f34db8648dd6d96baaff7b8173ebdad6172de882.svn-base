@@ -1,0 +1,33 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package civ.research;
+
+import civ.enums.UnitType;
+import java.util.ArrayList;
+
+
+class PoliticsNode extends TreeNode {
+
+    public PoliticsNode(ArrayList <UnitType> aU) {
+        super(aU, "Politics");
+        turnsToComplete = THIRDLEVELTURNS;
+    }
+
+    @Override
+    public void researchComplete() {
+        this.setResearched(true);
+        availableUnits.add(UnitType.DIPLOMAT);
+        availableUnits.add(UnitType.PARTISAN);
+        availableUnits.add(UnitType.FREIGHT);
+        availableUnits.add(UnitType.TRANSPORT);
+        
+    }
+
+    public String getInfo(){
+        return ("Unlocks: DIPLOMAT, PARTISAN, FREIGHT, TRANSPORT");
+    }
+
+}

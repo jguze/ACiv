@@ -1,0 +1,470 @@
+//The SpriteUtils is responsible for providing the correct sprite for a world object
+//such as a unit or a city. It takes into consideration such things as city rank,
+//and the terrain around a tile of terrain.
+package civ.sprites;
+
+import civ.*;
+import java.io.FileReader;
+import civ.enums.*;
+import civ.engine.GameEngine;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
+
+/**
+ * SpriteUtils (Sprite Utilities) is a utility used for encapsulating anything
+ * related to sprites or images in one place. It allows other components to grab
+ * images or colors that it requires without needing to store them locally in units
+ * or city objects. This allows for conservation of memory in regards to images, as
+ * we keep base instances within the utility and only draw addition details (health,
+ * commands, statuses) when we need to.
+ */
+public class SpriteUtils {
+
+    private HashMap<String, Color> miniMapColorPalette;
+    private HashMap<String, BufferedImage> terrainMap;
+    private HashMap<String, BufferedImage> cityMap;
+    private HashMap<TerrainBonusType, BufferedImage> terrainBonusMap;
+    private HashMap<UnitType, BufferedImage> unitMap;
+    private BufferedImage highlight;
+    private World world;
+    private static final int TILEWIDTH = 30;
+    private static final int TILEHEIGHT = 30;
+    BufferedReader reader;
+    private HashMap<String, BufferedImage> unitDecorationMap;
+
+    private static SpriteUtils instance;
+
+    //TODO: This NEEDS to be removed at some point, I dont want it in here.
+    private GameEngine engine;
+
+    /**
+     * Do not use this constructor, if you require an instance of SpriteUtils, use the
+     * getInstance() method.
+     * @throws IllegalStateException
+     */
+    public SpriteUtils() throws IllegalStateException
+    {
+        throw new IllegalStateException("You can't do this, use SpriteUtils.getInstance()");
+    }
+
+    /**
+     * Creates a new SpriteUtils with the world for reference
+     * @param world the world currently used in game.
+     * @throws InstantiationException
+     */
+    private SpriteUtils(int i) throws InstantiationException {
+        //The integer parameter is just to differentiate the constructors
+        try {
+            loadTerrain();
+            loadTerrainBonus();
+            loadCities();
+            loadUnits();
+            loadHighlight();
+            loadMiniMapPalette();
+            loadUnitDecorators();
+            loadExtras();
+        } catch (IOException e) {
+            throw new InstantiationException(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the only instance of SpriteUtils in memory. (You don't need more than one)
+     * @return the active instance of SpriteUtils
+     */
+    public static SpriteUtils getInstance()
+    {
+
+        if(instance == null)
+        {
+            try{
+                instance = new SpriteUtils(0);
+            }
+            catch (InstantiationException e){     
+            }
+        }
+        return instance;
+    }
+
+    public void setEngine(GameEngine e)
+    {
+        this.engine = e;
+    }
+
+
+    /**
+     * Set the active world in the Sprite Utility. Be sure to do this
+     * anytime that you start a new game or load a new world for playing
+     * if you don't things break.
+     * @param world The active game world.
+     */
+    public void setWorld(World world)
+    {
+        this.instance.world = world;
+    }
+
+    /**
+     * Return the size of the tiles in pixels.
+     * @return tile size in pixels
+     */
+    public int getTileSize() {
+        return TILEWIDTH;
+    }
+
+    //Load the HashMap of colors using the spec file.
+    private void loadMiniMapPalette() {
+        this.miniMapColorPalette = new HashMap<String, Color>();
+        Color colorSet;
+        try {
+            BufferedReader freader = new BufferedReader(new FileReader(new File("resources/sprites/miniMapPalette.colors")));
+            String line;
+            String[] values;
+            freader.readLine();
+            while ((line = freader.readLine()) != null) {
+                values = line.split(" ");
+                if (values.length == 5) colorSet = new Color(Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[3]), Integer.parseInt(values[4]));
+                else colorSet = new Color(Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[3]));
+                miniMapColorPalette.put(values[0], colorSet);
+            }
+            freader.close();
+        } catch (IOException ex) {
+            Logger.getLogger("Error instantiating mini map color palette");
+        }
+    }
+
+    //Load the terrain sprite tiles from the sprite sheets
+    private void loadTerrain() throws IOException {
+        terrainMap = new HashMap<String, BufferedImage>();
+        SpriteParser parser = new SpriteParser("resources/sprites/tiles.png", "resources/sprites/tiles_terrain.sprites");
+        Tuple<String, BufferedImage> pair;
+        while ((pair = parser.next()) != null) {
+            terrainMap.put(pair.x, pair.y);
+        }
+    }
+
+    //Load unit health bars and state labels from the sprite sheets
+    private void loadUnitDecorators() throws IOException {
+        unitDecorationMap = new HashMap<String, BufferedImage>();
+        SpriteParser parser = new SpriteParser("resources/sprites/tiles.png", "resources/sprites/unit_decorations.sprites");
+        Tuple<String, BufferedImage> pair;
+        while ((pair = parser.next()) != null) {
+            unitDecorationMap.put(pair.x, pair.y);
+        }
+    }    
+    
+    //Load the terrain bonus sprites
+    private void loadTerrainBonus() throws IOException {
+        terrainBonusMap = new HashMap<TerrainBonusType, BufferedImage>();
+        SpriteParser parser = new SpriteParser("resources/sprites/tiles.png", "resources/sprites/tiles_terrainBonus.sprites");
+        Tuple<String, BufferedImage> spritePair;
+        while ((spritePair = parser.next()) != null) {
+            terrainBonusMap.put(TerrainBonusType.valueOf(spritePair.x), spritePair.y);
+        }
+    }
+
+    //load the city sprites from the sprite sheet
+    private void loadCities() throws IOException {
+        cityMap = new HashMap<String, BufferedImage>();
+        SpriteParser parser = new SpriteParser("resources/sprites/cities.png", "resources/sprites/cities.sprites");
+        Tuple<String, BufferedImage> spritePair;
+        while ((spritePair = parser.next()) != null) {
+            cityMap.put(spritePair.x, spritePair.y);
+        }
+    }
+
+    //load the unit sprites from the sprite sheet using the sprites file for cropping
+    private void loadUnits() throws IOException {
+        unitMap = new HashMap<UnitType, BufferedImage>();
+        SpriteParser parser = new SpriteParser("resources/sprites/units.png", "resources/sprites/units.sprites");
+        Tuple<String, BufferedImage> spritePair;
+        while ((spritePair = parser.next()) != null) {
+            unitMap.put(UnitType.valueOf(spritePair.x), spritePair.y);
+        }
+    }
+    
+    private void loadExtras() throws IOException {
+        SpriteParser parser = new SpriteParser("resources/sprites/extraunits.png", "resources/sprites/extraunits.sprites");
+        Tuple<String, BufferedImage> spritePair;
+        while ((spritePair = parser.next()) != null) {
+            unitMap.put(UnitType.valueOf(spritePair.x), spritePair.y);
+        }
+    }
+
+    /**
+     * Returns an appropriate <code>BufferedImage</code> object that contains the sprite
+     * representing the map tile passed in. It considers what is around the
+     * tile in order to pick the appropriate sprite from the image hash.
+     *
+     * @param coords the map location of the tile of interest.
+     * @return the appropriate sprite as a <code>BufferedImage</code>
+     */
+    public BufferedImage getTerrainSprite(MapLocation coords) {
+        try {
+            //Get the tile that we want to look around for ease of use later.
+            Tile tile = world.getTile(coords);
+            TerrainType tileType = tile.getTerrainType();
+            //IF the tile is grass, then we dont care whats around, it we just
+            //return the grass sprite, otherwise we need to look.
+            String key;
+            int y = coords.y;
+            int x = coords.x;
+            int my = world.getMap().getMapHeight();
+            int mx = world.getMap().getMapWidth();
+            if(tile.getTerrainType() != TerrainType.GRASSLAND)
+            {
+                //get the base key for the sprite, ex "DESERT"
+                key = tile.getTerrainType().toString();
+                //Check whats around the tile :D
+                //Remember to take into account if the map is wrapping or not
+                boolean north = (y > 0 ? world.getTile(x, y - 1).getTerrainType() == tileType : true);
+                boolean east = (world.getTile(x + 1 > mx - 1 ? (x + 1) - mx : x + 1, y).getTerrainType() == tileType || (!world.getMap().wraps() && x == mx-1));
+                boolean south = (y < my - 1 ? world.getTile(x, y + 1).getTerrainType() == tileType : true);
+                boolean west = (world.getTile(x - 1 < 0 ? (x - 1) + mx : x - 1, y).getTerrainType() == tileType || (!world.getMap().wraps() && x == 0));
+                //if the terrain is a hill, mountain or forest, we only care what
+                //is east and west of it (we dont have sprites for N and S)
+                if (tileType == TerrainType.HILLS || tileType == TerrainType.MOUNTAINS || tileType == TerrainType.FOREST) {
+                    north = south = false;
+                }
+                //Append the appropriate key to the type of it has surrounding types
+                if (north || east || south || west) {
+                    key += "_" + (north ? "N" : "") + (east ? "E" : "") + (south ? "S" : "") + (west ? "W" : "");
+                }
+            }
+            else
+                key = "GRASSLAND";
+            
+            //Grab a clone of the sprite for paint onto (Rivers, roads, etc)
+            BufferedImage tileSprite =  cloneSprite(this.terrainMap.get(key));
+            //Grab the graphics so we can paint layers onto the sprite.
+            Graphics2D paintRegion = tileSprite.createGraphics();
+            
+            if(tile.riverPresent())
+            {
+                key = "RIVER";
+                Tile oInt = world.getTile(x, y - 1);
+                boolean north = (y > 0 ? (oInt.riverPresent() || oInt.getTerrainType() == TerrainType.OCEAN) : true);
+                
+                oInt = world.getTile(x + 1 > mx - 1 ? (x + 1) - mx : x + 1, y);
+                boolean east = ((oInt.riverPresent() || oInt.getTerrainType() == TerrainType.OCEAN) || (!world.getMap().wraps() && x == mx-1));
+                
+                oInt = world.getTile(x, y + 1);
+                boolean south = (y < my - 1 ? (oInt.riverPresent() || oInt.getTerrainType() == TerrainType.OCEAN) : true);
+                
+                oInt = world.getTile(x - 1 < 0 ? (x - 1) + mx : x - 1, y);
+                boolean west = ((oInt.riverPresent() || oInt.getTerrainType() == TerrainType.OCEAN ) || (!world.getMap().wraps() && x == 0));
+
+                if (north || east || south || west) {
+                    key += "_" + (north ? "N" : "") + (east ? "E" : "") + (south ? "S" : "") + (west ? "W" : "");
+                }
+                
+                
+                BufferedImage river = this.terrainMap.get(key);
+                paintRegion.drawImage(river, 0, 0, null);
+            }
+            //Paint the bonus if we have one.
+            //We should probably check if there is a city on here, cause otherwise shits going to start looking ugly.
+            if(tile.getBonusType() != TerrainBonusType.NONE)
+            {
+                BufferedImage bonus = this.terrainBonusMap.get(tile.getBonusType());
+                paintRegion.drawImage(bonus, 0, 0, null);
+            }
+
+            return tileSprite;
+            
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    //Load the highlight sprite from the highlight
+    private void loadHighlight() {
+        try {
+            highlight = ImageIO.read(new File("resources/sprites/highlight.png"));
+        } catch (Exception e) {
+            Logger.getLogger("Invalid highlight image");
+        }
+    }
+
+    /**
+     * Returns the sprite used to highlight tiles in MapView
+     * @return the highlight sprite
+     */
+    public BufferedImage getHighlight() {
+        return highlight;
+    }
+
+    /**
+     * Gets the sprite as a BufferedImage of the top-most unit on the map location
+     * specified. If there are no units on the tile, the method returns null.
+     * @param mapLocation location of interest
+     * @return A sprite as a <code>BufferedImage</sprite> or <code>null</code>
+     */
+    public BufferedImage getUnitSprite(MapLocation mapLocation) {
+        ArrayList<Unit> units = world.getUnitList(mapLocation);
+        if (units.isEmpty()) {
+            return null;
+        }
+        Unit tempUnit = units.get(0);
+        BufferedImage baseImage = unitMap.get(tempUnit.getUnitType());
+        
+        BufferedImage clonedBaseImage = cloneSprite(baseImage);
+        Graphics2D paintRegion = clonedBaseImage.createGraphics();
+        
+        paintRegion.drawImage(unitDecorationMap.get(tempUnit.getHealthRatio()), 0, 0, TILEWIDTH, TILEHEIGHT, null);
+        
+        if(tempUnit.getState() == Unit.State.MOVING || tempUnit.getState() == Unit.State.MOVE_BLOCKED) {
+            paintRegion.drawImage(unitDecorationMap.get("MOVE"), 0, 0, TILEWIDTH, TILEHEIGHT, null);
+            return clonedBaseImage;
+        }
+        
+        return clonedBaseImage;
+    }
+    
+    /**
+     * Creates a new instance of a buffered image.
+     * @param original the original image to be cloned.
+     * @return a new instance that looks identical to the original image.
+     */
+    public BufferedImage cloneSprite(BufferedImage original) {
+        BufferedImage copyOfImage = new BufferedImage(original.getWidth(), original.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+        Graphics g = copyOfImage.createGraphics();
+        g.drawImage(original, 0, 0, null);
+        return copyOfImage;
+    }
+
+    /**
+     * Returns a <code>BufferedImage</code> of the sprite of the unit type specified.
+     * @param unitType the type of unit of interest
+     * @return <code>BufferedImage</code> sprite of unit
+     */
+    public BufferedImage getUnitSprite(UnitType unitType) {
+        return unitMap.get(unitType);
+    }
+
+    /**
+     * Gets the sprite as a BufferedImage of the city on the map location
+     * specified. If there are no cities on the tile, the method returns null.
+     * @param mapLocation location of interest
+     * @return A sprite as a <code>BufferedImage</sprite> or <code>null</code>
+     */
+    public BufferedImage getCitySprite(MapLocation mapLocation) {
+        City city = world.getCity(mapLocation);
+        if (city == null) {
+            return null;
+        }
+        BufferedImage sprite = null;
+        if (city.getLevel() < 5) {
+            sprite = cityMap.get(city.getStyle().toString() + "_" + 1);
+        } else if (city.getLevel() < 10) {
+            sprite = cityMap.get(city.getStyle().toString() + "_" + 2);
+        } else {
+            sprite = cityMap.get(city.getStyle().toString() + "_" + 3);
+        }
+        return sprite;
+    }
+
+    /**
+     * Returns the color representation of a tile at location x,y.
+     * @param x x-coordinate of the tile.
+     * @param y y-coordinate of the tile.
+     * @return <code>Color</code> of the tile specified.
+     */
+    public Color getTerrainColor(int x, int y)
+    {
+        Tile tile = getTileAt(x,y);
+        int w = world.getMap().getMapWidth(); int h = world.getMap().getMapHeight();
+        MapLocation mloc = new MapLocation((x+w)%w, (y+h)%h);
+        ArrayList<Unit> crets = world.getUnitList(mloc);
+        City loc = world.getCity(mloc);
+        if(crets == null) System.out.println("Crets is broken and is null, thats not write!");
+        if(crets.isEmpty() &&loc == null)
+            return miniMapColorPalette.get(tile.getTerrainType().toString());
+        else if(((crets.isEmpty())?false:(crets.get(0).getOwner() == engine.getCurPlayer())) || ((loc==null)?false:(loc.getOwner() == engine.getCurPlayer())))
+            return miniMapColorPalette.get("FRIEND");
+        else
+            return miniMapColorPalette.get("ENEMY");
+    }
+
+    /**
+     * Get the terrain bonus overlay color
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @return a <code>Color</code> to paint with.
+     */
+    public Color getTerrainOverColor(int x, int y)
+    {
+        Tile tile = getTileAt(x,y);
+        if(tile.riverPresent()) return miniMapColorPalette.get("RIVER");
+        else return null;
+    }
+
+
+    private Tile getTileAt(int x, int y)
+    {
+        int w = world.getMap().getMapWidth(); x = (x+w)%w;
+        int h = world.getMap().getMapHeight(); y = (y+h)%h;
+        return world.getTile(x, y);
+    }
+    //A private class to encapsulate the parsing of sprite sheets into a common place.
+    //Documentation is provide below.
+    private class SpriteParser {
+
+        BufferedReader spriteFileReader;
+        BufferedImage spriteSheetFile;
+
+        /**
+         * Constructor
+         * @param spriteSheet filename of the sprite sheet
+         * @param spriteFile filename of the parse information
+         * @throws IOException in the event that the files can't be opened,
+         */
+        SpriteParser(String spriteSheet, String spriteFile) throws IOException {
+            spriteSheetFile = ImageIO.read(new File(spriteSheet));
+            spriteFileReader = new BufferedReader(new FileReader(new File(spriteFile)));
+            spriteFileReader.readLine();
+        }
+
+        /**
+         * Grabs the next sprite and it's name from the files used to create the parser.
+         * @return A <code>Tuple</code> containing the string and sprite
+         * @throws IOException in the event that a file encountered an error reading
+         */
+        public Tuple<String, BufferedImage> next() throws IOException {
+            try {
+                //Throws a nullPointerException on the readline if we hit the end
+                //of the file, ie there are not more sprites
+                String[] values = spriteFileReader.readLine().split(" ");
+                BufferedImage sprite = spriteSheetFile.getSubimage(
+                        Integer.parseInt(values[1].trim()) * TILEWIDTH,
+                        Integer.parseInt(values[2].trim()) * TILEHEIGHT,
+                        TILEWIDTH, TILEWIDTH);
+                return new Tuple<String, BufferedImage>(values[0], sprite);
+            } catch (NullPointerException e) {
+                return null;
+            }
+        }
+    }
+
+    //Private class for tuples just for simplicity of passing results back from parsing.
+    private class Tuple<X, Y> {
+
+        public final X x;
+        public final Y y;
+
+        public Tuple(X x, Y y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+}

@@ -1,0 +1,228 @@
+package civ.UI;
+
+import civ.City;
+import civ.engine.GameEngine;
+import civ.enums.UnitType;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
+import java.util.Observable;
+import javax.swing.border.BevelBorder;
+
+/*
+ * Mark's, no touchy <-- Screw you I touched. Don't tell the police.
+ */
+
+//TODO: Add cityname within panel
+public class CityView extends JFrame 
+                  implements ActionListener {
+    
+    private Container cp;
+    private City city;
+    private GameEngine gameEngine;
+    private JTextField productionTextField;
+    private JTextField turnsRemainingTextField;
+    private UnitImage picture;
+    
+    public CityView(City city, GameEngine gameEngine) {
+        super(city.getName());
+        this.city = city;
+        this.gameEngine = gameEngine;
+        
+        cp = getContentPane();
+        cp.setLayout(new GridBagLayout());
+        cp.setBackground(Color.BLUE);
+        cp.setPreferredSize(new Dimension(500, 400));        
+        
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setPreferredSize(new Dimension(498, 398));
+        
+        JPanel overviewTab = new JPanel(new GridBagLayout());
+        overviewTab.setVisible(true);
+        overviewTab.setPreferredSize(new Dimension(495, 395));
+        overviewTab.setSize(495, 395);
+        
+       /* Displays a subsection of MapView of a subsection of resources (to be interactive!!!!!)
+         * Possibly put it in a different tab of something
+         * 
+         */
+        JPanel resources = new JPanel();
+        resources.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH), "Resources"));
+        resources.setBackground(Color.LIGHT_GRAY);
+        resources.setPreferredSize(new Dimension(175, 175));
+        resources.setSize(175, 175);
+        resources.setMinimumSize(new Dimension(175, 175));
+        resources.setVisible(true);
+        
+        GridBagConstraints gbcResources = new GridBagConstraints();
+        gbcResources.insets = new Insets(5,5,5,5);
+        gbcResources.gridx = 0;
+        gbcResources.gridy = 0;
+        gbcResources.gridheight = 2;
+        gbcResources.gridwidth = 2;
+        gbcResources.weightx = 0.8;
+        gbcResources.weighty = 0.6;     
+        gbcResources.anchor = GridBagConstraints.NORTHWEST;
+        gbcResources.fill = GridBagConstraints.BOTH;
+        overviewTab.add(resources, gbcResources);
+        
+        // Will most likely change from a Panel to some sort of drop down menu
+        // Used to build units
+        JPanel production = new JPanel();
+        production.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH), "Production"));       
+        production.setBackground(Color.LIGHT_GRAY);
+        production.setPreferredSize(new Dimension(250, 155));
+        production.setSize(250, 155);
+        production.setMaximumSize(new Dimension(250, 155));
+        production.setVisible(true);
+
+        GridBagConstraints gbcProduction = new GridBagConstraints();
+        gbcProduction.insets = new Insets(5,5,5,5);
+        gbcProduction.gridx = GridBagConstraints.RELATIVE;
+        gbcProduction.gridy = 0;
+        gbcProduction.gridheight = 1;
+        gbcProduction.gridwidth = 1;
+        gbcProduction.weightx = 0.4;
+        gbcProduction.weighty = 0.4;     
+        gbcProduction.anchor = GridBagConstraints.NORTHEAST;
+        gbcProduction.fill = GridBagConstraints.BOTH;
+        
+        createProductionPanel(production);
+        
+        overviewTab.add(production, gbcProduction); 
+        
+        //Contains all the city statistics such as food, population, production, etc.
+        JPanel cityStats = new JPanel();
+        cityStats.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH), "Current Statistics"));
+        cityStats.setBackground(Color.LIGHT_GRAY);
+        cityStats.setPreferredSize(new Dimension(180, 200));        
+        cityStats.setSize(new Dimension(180,200));
+        GridBagConstraints gbcCityStats = new GridBagConstraints();
+        
+        gbcCityStats.insets = new Insets(5,5,5,5);
+        gbcCityStats.gridx = 0;
+        gbcCityStats.gridy = GridBagConstraints.RELATIVE;
+        gbcCityStats.gridheight = 2;
+        gbcCityStats.gridwidth = 2;
+        gbcCityStats.weightx = 0.8;
+        gbcCityStats.weighty = 0.6;
+        gbcCityStats.anchor = GridBagConstraints.SOUTHWEST;
+        gbcCityStats.fill = GridBagConstraints.BOTH;
+      
+        overviewTab.add(cityStats, gbcCityStats);
+        
+        //Contains a list of the units currently on the city tile
+        JPanel cityUnits = new JPanel();
+        cityUnits.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH), "City's Units"));
+        cityUnits.setPreferredSize(new Dimension(300, 90));
+        cityUnits.setBackground(Color.LIGHT_GRAY);
+        cityUnits.setVisible(true);
+        
+        GridBagConstraints gbcCityUnits = new GridBagConstraints();
+        gbcCityUnits.insets = new Insets(5,5,5,5);
+        gbcCityUnits.gridx = GridBagConstraints.RELATIVE;
+        gbcCityUnits.gridy = 2;
+        gbcCityUnits.gridheight = 1;
+        gbcCityUnits.gridwidth = 2;
+        gbcCityUnits.weightx = .3;
+        gbcCityUnits.weighty = .3;        
+        gbcCityUnits.anchor = GridBagConstraints.SOUTHEAST;
+        gbcCityUnits.fill = GridBagConstraints.BOTH;
+        overviewTab.add(cityUnits, gbcCityUnits);
+
+        JTabbedPane productionTab = new JTabbedPane();
+        JTabbedPane resourceTab = new JTabbedPane();
+                
+        tabbedPane.addTab("OVERVIEW", overviewTab);
+        tabbedPane.addTab("PRODUCTION", productionTab);
+        tabbedPane.addTab("RESOURCES", resourceTab);
+        cp.add(tabbedPane);        
+        
+        this.setVisible(true);
+        this.setResizable(false);
+        this.pack();
+        
+    }
+
+    /*
+     * Create the production panel with a currently producing panel, and a list
+     * of units to produce
+     * @param: The production JPanel
+     */
+    private void createProductionPanel(JPanel production) {
+        production.setLayout(new GridLayout(2,1));
+        JPanel currentlyInProd = new JPanel(new GridLayout(3,1));
+        currentlyInProd.setVisible(true);
+        currentlyInProd.setPreferredSize(new Dimension(195, 3 * production.getSize().height / 4 ));
+        currentlyInProd.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(
+                Color.BLACK, WIDTH)));
+        
+        currentlyInProd.add(new JLabel("Currently Producing: "));        
+        productionTextField = new JTextField(city.getCurrentlyProducing().toString());
+        turnsRemainingTextField = new JTextField(city.getTurnsRemaining());
+        currentlyInProd.add(productionTextField);
+        currentlyInProd.add(new JLabel("Turns Remaining: "));
+        currentlyInProd.add(turnsRemainingTextField);
+        picture = new UnitImage(gameEngine.getUnitSprite(city.getCurrentlyProducing()));
+        currentlyInProd.add(picture);
+
+        JComboBox unitList = new JComboBox(UnitType.values());        
+        unitList.setVisible(true);
+        unitList.addActionListener(this);
+        unitList.setSelectedItem(city.getCurrentlyProducing());
+        
+        production.add(currentlyInProd);
+        production.add(unitList);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        JComboBox a = (JComboBox)e.getSource();
+        String newUnit = a.getSelectedItem().toString();
+        updateProduction(newUnit);
+    }
+
+    private void updateProduction(String newUnit) {
+        if (newUnit.equals(city.getCurrentlyProducing().toString())) {
+            return;
+        }
+        
+        city.setCurrentlyProducing(UnitType.valueOf(newUnit));
+        city.setProdTurnsRemaining(gameEngine.getUnitInfo(UnitType.valueOf(newUnit)).getTurnsToProduce());
+        
+        updateView();
+    }
+
+    private void updateView() {
+        productionTextField.setText(city.getCurrentlyProducing().toString());
+        turnsRemainingTextField.setText(city.getTurnsRemaining());
+        picture.setImage(gameEngine.getUnitSprite(city.getCurrentlyProducing()));
+        picture.repaint();
+    }
+    
+    private class UnitImage extends JPanel {
+        private BufferedImage image;
+        
+        public UnitImage(BufferedImage image) {
+            this.image = image;
+        }
+        
+        @Override
+        public void paintComponent(Graphics g) {
+            g.drawImage(image, 0,0,30,30, null);           
+        }
+        
+        public void setImage(BufferedImage image) {
+            this.image = image;
+        }
+    }
+    
+}

@@ -1,0 +1,125 @@
+package civ.UI;
+
+import civ.engine.GameEngine;
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import sun.audio.*;
+
+/*
+ * Mark's, no touchy. I will murder you!
+ */
+
+public class SplashView extends JFrame implements ActionListener{
+    
+    JButton PlayerTest, PlayerTest2;
+    
+    JFrame newFrame = new JFrame("New Window");
+    JPanel BackPanel = new JPanel();
+    JPanel BottomPanel = new JPanel();
+    
+    private AudioPlayer MGP = AudioPlayer.player;
+    private ContinuousAudioDataStream loop = null;
+    
+    private GameEngine civEngine; 
+    private Container cp = getContentPane();
+    
+    public SplashView(){
+        super("Paul Civ");
+        
+        try{
+            AudioStream BGM = new AudioStream(new FileInputStream("src/civ/UI/starwarstheme.wav"));
+            AudioData MG = BGM.getData();
+            ContinuousAudioDataStream loopI = new ContinuousAudioDataStream(MG);
+            loop = loopI;
+            MGP.start(loop);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        cp.setLayout(createLayout());
+        cp.setBackground(Color.BLACK);
+        
+        GridBagConstraints c = new GridBagConstraints();
+        
+        BackPanel.setSize(500, 100);
+        BackPanel.setBackground(Color.DARK_GRAY);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        cp.add(BackPanel, c);
+        
+        BackPanel.setSize(200, 400);
+        BottomPanel.setBackground(Color.DARK_GRAY);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridheight = 1;
+        c.gridwidth = 1;
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.NONE;
+        cp.add(BottomPanel, c);
+        
+        try{
+            BufferedImage myPicture = ImageIO.read(new File("src/civ/UI/SplashPic2.jpg")); 
+            JLabel picLabel = new JLabel(new ImageIcon( myPicture ));
+            BackPanel.add(picLabel);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
+        Insets buttonMargin = new Insets(5, 1, 5, 1);
+        
+        PlayerTest = new JButton("1PlayerTest");
+        PlayerTest.setBackground(Color.LIGHT_GRAY);
+        PlayerTest.setForeground(Color.BLACK);
+        PlayerTest.setMargin(buttonMargin);
+        PlayerTest.addActionListener(this);
+        
+        PlayerTest2 = new JButton("2PlayerTest");
+        PlayerTest2.setBackground(Color.LIGHT_GRAY);
+        PlayerTest2.setForeground(Color.BLACK);
+        PlayerTest2.setMargin(buttonMargin);
+        PlayerTest2.addActionListener(this);
+        
+        BottomPanel.add(PlayerTest);
+        BottomPanel.add(PlayerTest2);
+        
+        this.setSize(1050, 850);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+    }
+    
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == PlayerTest) {
+            civEngine = new GameEngine(1);
+            this.setVisible(false);
+            this.dispose();
+            MGP.stop(loop);
+            CivFrame civ = new CivFrame(civEngine);
+        }
+        if (e.getSource() == PlayerTest2){
+            civEngine = new GameEngine(2);
+            this.setVisible(false);
+            this.dispose();
+            MGP.stop(loop);
+            CivFrame civ = new CivFrame(civEngine);
+        }
+    }
+    private GridBagLayout createLayout()
+    {
+        GridBagLayout GBL = new GridBagLayout();
+        GBL.columnWidths = new int[] {750,0};
+        GBL.rowHeights = new int[] {450, 50};
+        return GBL;
+    }
+}
