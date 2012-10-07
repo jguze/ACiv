@@ -1,16 +1,27 @@
 #Example makefile for review purposes with sfml
-LIBS=-lsfml-system
 
-all:
+#State the library used. I think macs work the same way.
+LIBS := -lsfml-system
+
+#Choose your compiler
+CXX := g++ #gcc c++
+CXXFLAGS := -g
+
+#Rules are created so we never compile code if we never changed it
+all: clock
+
+clock.o: clock.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+#$< is $(input) and $@ is $(output)
+
+clock: clock.o
 	@echo "Building code"
-	g++ -c "clock.cpp" -o clock.o
-	g++ -o clock clock.o $(LIBS)
+	$(CXX) $< -o $@ $(LIBS)
 
 #Get rid of all the clutter
 clean:
 	@echo "Removing all object files and executable"
-	rm -f clock
-	rm -f clock.o
+	$(RM) clock *.o
  
 #Since we are all on Unix/Linux systems, we could even install the executable on the system
 install:
@@ -19,5 +30,4 @@ install:
 
 uninstall:
 	@echo "Uninstalling game"
-	rm clock
-	rm /usr/bin/clock
+	$(RM) /usr/bin/clock
